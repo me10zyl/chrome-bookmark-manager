@@ -51,6 +51,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="group-header">
                     <h3>${folder.displayTitle}</h3>
                     <div class="group-actions">
+                        <button class="edit-group-btn" data-id="${folder.id}">编辑</button>
                         <button class="open-all-btn" data-id="${folder.id}">打开所有</button>
                         <button class="delete-group-btn" data-id="${folder.id}">删除组</button>
                     </div>

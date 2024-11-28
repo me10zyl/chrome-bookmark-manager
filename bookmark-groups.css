@@ -138,4 +138,15 @@ body {
         transform: translateY(0);
     }
 }
+
+.edit-group-btn {
+    background: #565b64;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
  
