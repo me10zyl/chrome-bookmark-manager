@@ -23,16 +23,31 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px;
+    padding: 12px 16px;
     background: #f8f9fa;
     border-bottom: 1px solid #eee;
 }
 
-.group-header h3 {
-    margin: 0;
-    color: #202124;
+.group-title-wrapper {
+    flex: 1;
+    min-width: 0;
+}
+
+.group-title-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.group-title {
     font-size: 16px;
     font-weight: 500;
+    color: #202124;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .group-actions {
@@ -140,13 +155,97 @@ body {
 }
 
 .edit-group-btn {
-    background: #565b64;
-    color: white;
+    background: #79d150;
+    color: rgb(247, 241, 241);
     border: none;
     padding: 8px 16px;
     border-radius: 4px;
     cursor: pointer;
     font-size: 14px;
     transition: background-color 0.2s;
+}
+
+/* 下拉菜单相关样式 */
+.dropdown {
+    position: relative;
+    display: inline-flex;
+    margin-left: 8px;
+    flex-shrink: 0;
+}
+
+
+.group-title-container:hover .edit-group-btn {
+    opacity: 1;
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.edit-group-btn:hover {
+    opacity: 1;
+    background-color: rgba(0, 0, 0, 0.1);
+    transform: scale(1.05);
+}
+
+.edit-group-btn svg {
+    fill: #444;
+    width: 18px;
+    height: 18px;
+    transition: fill 0.2s ease;
+}
+
+.edit-group-btn:hover svg {
+    fill: #1a73e8;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    min-width: 180px;
+    padding: 8px 0;
+    margin-top: 4px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.2s ease;
+    z-index: 1000;
+}
+
+.dropdown-menu.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 8px 16px;
+    border: none;
+    background: none;
+    color: #202124;
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+}
+
+.dropdown-item svg {
+    width: 16px;
+    height: 16px;
+    margin-right: 12px;
+    fill: #5f6368;
+}
+
+.dropdown-item:hover svg {
+    fill: #1a73e8;
 }
  
