@@ -48,7 +48,14 @@ document.addEventListener('DOMContentLoaded', function() {
 function renderBookmarkGroup(folder) {
     return `
        <div class="group-header">
-                    <h3>${folder.displayTitle}</h3>
+                    <h3 class="group-title">${folder.displayTitle}</h3>
+                    <div class="group-edit-form" style="display: none;">
+                        <input type="text" class="group-name-input" value="${folder.displayTitle}">
+                        <div class="edit-actions">
+                            <button class="save-name-btn">保存</button>
+                            <button class="cancel-edit-btn">取消</button>
+                        </div>
+                    </div>
                     <div class="group-actions">
                          <div class="dropdown">
                             <button class="edit-group-btn" title="更多操作">
@@ -62,13 +69,7 @@ function renderBookmarkGroup(folder) {
                                     <svg viewBox="0 0 24 24" width="16" height="16">
                                         <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
                                     </svg>
-                                    <span>重命名</span>
-                                </button>
-                                <button class="dropdown-item delete-group-btn">
-                                    <svg viewBox="0 0 24 24" width="16" height="16">
-                                        <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-                                    </svg>
-                                    <span>删除</span>
+                                    <span>重命名组</span>
                                 </button>
                             </div>
                         </div>
@@ -87,12 +88,17 @@ function renderBookmarks(bookmarks) {
     return bookmarks.map(bookmark => {      
         return `
             <div class="bookmark-item">
+                <div class="bookmark-info">
                 ${bookmark.url ? `
                     <a href="${bookmark.url}" target="_blank">
                         <span class="bookmark-title">${bookmark.title}</span>
                         <span class="bookmark-url">${bookmark.url}</span>
                     </a>
                 ` : ''}
+                </div>
+                <div class="bookmark-actions">
+                    <button class="delete-bookmark-btn" data-id="${bookmark.id}">删除</button>
+                </div>
             </div>
         `;
     }).join('');
@@ -103,6 +109,7 @@ function renderBookmarks(bookmarks) {
         groups.forEach(folder => {
             const groupDiv = document.createElement('div');
             groupDiv.className = 'group-item';
+            groupDiv.dataset.groupId = folder.id;
             
             groupDiv.innerHTML = renderBookmarkGroup(folder);
             
@@ -170,16 +177,16 @@ function renderBookmarks(bookmarks) {
             if (renameBtn) {
                 console.log('重命名按钮被点击了')
                 e.stopPropagation();
-                const group = renameBtn.closest('.bookmark-group');
-                const titleContainer = group.querySelector('.group-title-container');
-                const editForm = group.querySelector('.group-edit-form');
+                const groupHeader = renameBtn.closest('.group-header');
+                const title = groupHeader.querySelector('h3');
+                const editForm = groupHeader.querySelector('.group-edit-form');
                 const input = editForm.querySelector('.group-name-input');
                 
                 // 隐藏下拉菜单
                 renameBtn.closest('.dropdown-menu').classList.remove('show');
                 
                 // 显示编辑表单
-                titleContainer.style.display = 'none';
+                title.style.display = 'none';
                 editForm.style.display = 'flex';
                 input.focus();
                 input.select();
@@ -210,7 +217,7 @@ function renderBookmarks(bookmarks) {
         document.addEventListener('click', function(e) {
             const saveBtn = e.target.closest('.save-name-btn');
             if (saveBtn) {
-                const group = saveBtn.closest('.bookmark-group');
+                const group = saveBtn.closest('.group-item');
                 const input = group.querySelector('.group-name-input');
                 const newTitle = input.value.trim();
                 
@@ -224,7 +231,7 @@ function renderBookmarks(bookmarks) {
         document.addEventListener('click', function(e) {
             const cancelBtn = e.target.closest('.cancel-edit-btn');
             if (cancelBtn) {
-                const group = cancelBtn.closest('.bookmark-group');
+                const group = cancelBtn.closest('.group-header');
                 hideRenameForm(group);
             }
         });
@@ -243,7 +250,7 @@ function renderBookmarks(bookmarks) {
             if (e.key === 'Enter') {
                 const input = document.activeElement;
                 if (input.classList.contains('group-name-input')) {
-                    const group = input.closest('.bookmark-group');
+                    const group = input.closest('.group-item');
                     const newTitle = input.value.trim();
                     
                     if (newTitle) {
@@ -262,7 +269,7 @@ function renderBookmarks(bookmarks) {
 
     // 更新组名
     function updateGroupName(groupId, newTitle, group) {
-        chrome.bookmarks.update(groupId, { title: newTitle }, () => {
+        chrome.bookmarks.update(groupId, { title: '[TabGroup]' + newTitle }, () => {
             group.querySelector('.group-title').textContent = newTitle;
             hideRenameForm(group);
         });
@@ -270,7 +277,7 @@ function renderBookmarks(bookmarks) {
 
     // 隐藏重命名表单
     function hideRenameForm(group) {
-        const titleContainer = group.querySelector('.group-title-container');
+        const titleContainer = group.querySelector('h3');
         const editForm = group.querySelector('.group-edit-form');
         titleContainer.style.display = 'flex';
         editForm.style.display = 'none';

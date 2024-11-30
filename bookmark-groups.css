@@ -94,6 +94,8 @@ body {
     padding: 12px;
     border-bottom: 1px solid #eee;
     transition: background-color 0.2s;
+    display: flex;
+    justify-content: space-between;
 }
 
 .bookmark-item:last-child {
@@ -247,5 +249,38 @@ body {
 
 .dropdown-item:hover svg {
     fill: #1a73e8;
+}
+
+/* 书签组样式 */
+.bookmark-folder {
+    background: #fff;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.group-title-wrapper {
+    flex: 1;
+    min-width: 0;
+}
+
+.group-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8f9fa;
+}
+
+.g
+
+.group-title {
+    font-size: 16px;
+    font-weight: 500;
+    color: #202124;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
  
