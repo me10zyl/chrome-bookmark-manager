@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import {computed, ref} from 'vue'
+import {computed, ref, onMounted} from 'vue'
 import {useRouter} from 'vue-router'
 import {groupBy} from '@/js/util'
+import BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 
 interface Result {
   id: string,
   title: string,
   url: string,
   type: 'bookmark' | 'tab' | 'history',
-  favicon: string
+  favicon: string,
+  checked?: boolean
 }
 
 const typeLabels = {
@@ -126,7 +128,7 @@ const search = async () => {
   const query = searchText.value.toLowerCase()
   const results = []
 
-  function mapBookmarks(item) {
+  function mapBookmarks(item) : Result {
     return {
       id: item.id,
       title: item.title,
@@ -136,7 +138,7 @@ const search = async () => {
     }
   }
 
-  function mapTab(tab) {
+  function mapTab(tab) : Result {
     return {
       id: tab.id,
       title: tab.title,
@@ -159,7 +161,7 @@ const search = async () => {
 
   try {
     // 搜索书签
-    const bookmarkResults = await new Promise((resolve) => {
+    const bookmarkResults: Result[] = await new Promise((resolve) => {
       chrome.bookmarks.search(query, (items) => {
         resolve(items.map(mapBookmarks))
       })
@@ -219,7 +221,7 @@ const clearSearch = () => {
   showResults.value = false
 }
 
-// 处理搜索框失焦
+// 处理搜索框失��
 const handleBlur = () => {
   // 使用 setTimeout 确保点击结果项能够触发
   setTimeout(() => {
@@ -241,6 +243,78 @@ const init = ()=>{
   search()
 }
 init()
+
+const showBatchSelect = ref<boolean>(false)
+const batchSelect = ()=>{
+  showBatchSelect.value = true;
+}
+const batchSelectCount = computed(()=>{
+  return searchResults.value.filter(e=>e.checked).length
+})
+const selectAll = ()=>{
+  for (let result of searchResults.value) {
+    if(result.type === 'bookmark'){
+      result.checked =  !result.checked
+    }
+  }
+}
+const createBookmarkGroup = ()=>{
+
+  if (batchSelectCount.value === 0) {
+    alert('请先选择标签页');
+    return;
+  }
+
+  const groupName = prompt('请输入书签组名称：');
+  if (!groupName) return;
+
+  // 确保根文件夹存在
+  function ensureRootFolder(title:string, parentId:string) : Promise<BookmarkTreeNode> {
+    return new Promise((resolve) => {
+      chrome.bookmarks.search({title: title}, function(results) {
+        if (results.length > 0) {
+          // 如果找到了根文件夹，直接返回
+          resolve(results[0]);
+        } else {
+          // 如果没找到，创建一个新的根文件夹
+          chrome.bookmarks.create({
+            title: title,
+            parentId: parentId  // 在书签栏中创建
+          }, resolve);
+        }
+      });
+    });
+  }
+
+  // 首先确保有一个根文件夹
+  ensureRootFolder('我的标签组', '1').then((rootFolder: BookmarkTreeNode) => {
+    const selectedTabs:string[] = searchResults.value.filter(e=>e.checked).map(e=>e.id.toString())
+    console.log('selectTabs', selectedTabs)
+    // 在根文件夹下创建新的书签组
+    ensureRootFolder(`[TabGroup]${groupName}`,
+      rootFolder.id
+    ).then(function(folder) {
+      console.log('folder', folder)
+      chrome.tabs.query({}, function(tabs) {
+        console.log('after tabs query', tabs)
+        const selectedTabsInfo = tabs.filter(tab => selectedTabs.includes(tab.id.toString()));
+        console.log('selectedTabsInfo', selectedTabsInfo)
+        Promise.all(selectedTabsInfo.map(tab => {
+          return new Promise((resolve) => {
+            chrome.bookmarks.create({
+              parentId: folder.id,
+              title: tab.title,
+              url: tab.url
+            }, resolve);
+          });
+        })).then(() => {
+          alert('书签组创建成功！');
+          document.getElementById('cancelBtn').click();
+        });
+      });
+    });
+  });
+}
 </script>
 <template>
   <div class="search-container">
@@ -255,10 +329,22 @@ init()
       <div v-for="(arr, key) in groupedResults" class="search-box" v-if="showResults">
         <div id="searchStats" class="search-stats"></div>
         <div class="group-container">
-          <div class="group-header">{{ typeLabels[key] }}</div>
-          <div class="result-item" v-for="item in arr" @click="handleResultClick(item)">
+          <div class="group-header">
+            <span>{{ typeLabels[key] }}</span>
+            <div class="batch-select-container" v-if="key === 'tab'">
+              <button @click="batchSelect" class="action-btn" v-if="!showBatchSelect">批量选择</button>
+              <div class="batch-actions" v-if="showBatchSelect">
+                <button id="selectAll" class="action-btn" @click="selectAll">全选</button>
+                <button id="createGroup" class="action-btn" @click="createBookmarkGroup">创建书签组</button>
+                <span class="selected-count">已选择: {{batchSelectCount}}</span>
+                <button class="action-btn" @click="showBatchSelect = false" id="cancelBtn">取消</button>
+              </div>
+            </div>
+          </div>
+          <div class="result-item" v-for="item in arr">
+            <input type="checkbox" class="select-checkbox" v-if="showBatchSelect && key === 'tab'" v-model="item.checked"/>
             <img class="result-icon" v-bind:src="item.favicon">
-            <div class="result-info">
+            <div class="result-info" @click="handleResultClick(item)">
               <div class="result-title">{{ item.title }}</div>
               <div class="result-url">{{ item.url }}</div>
             </div>
@@ -278,11 +364,23 @@ body {
   padding: 20px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: #f5f5f5;
-  //min-width: 600px;
+  /*min-width: 600px;*/
+}
+.select-checkbox{
+  margin-right: 10px;
+}
+.batch-actions{
+  display: flex;
+  column-gap: 10px;
+  align-items: center;
 }
 
+.batch-select-container{
+  display: flex;
+}
+
+
 .search-container {
-  //max-width: 800px;
   margin: 0 auto;
 }
 
@@ -322,9 +420,12 @@ body {
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  max-height: 500px;
+  height: 80vh;
   overflow-y: auto;
   display: flex;
+  /*height: 0;
+  flex-direction: column;
+  flex-grow: 1;*/
 }
 
 .result-group {
@@ -336,11 +437,20 @@ body {
 }
 
 .group-header {
-  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 16px;
   background: #f8f9fa;
   font-weight: 500;
   color: #202124;
   font-size: 14px;
+  align-items: center;
+  height: 32px;
+  column-gap: 10px;
+}
+
+.group-header span{
+  flex-shrink: 0;
 }
 
 .result-item {
@@ -593,5 +703,105 @@ body {
   text-align: center;
   padding: 40px;
   color: #d93025;
+}
+
+/* 添加新的样式 */
+.result-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.result-actions {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.action-btn {
+  padding: 5px 10px;
+  border-radius: 4px;
+  border: 1px solid #dadce0;
+  background: white;
+  cursor: pointer;
+  font-size: 14px;
+  color: #3c4043;
+  flex-shrink: 0;
+/*  //overflow: hidden;
+  //text-overflow: ellipsis;*/
+  //white-space: nowrap;
+}
+
+.action-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.add-bookmark-btn svg {
+  fill: #5f6368;
+}
+
+.add-bookmark-btn:hover svg {
+  fill: #1a73e8;
+}
+
+.bookmark-folders-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 200px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  z-index: 1001;
+}
+
+.dropdown-header {
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #202124;
+  border-bottom: 1px solid #eee;
+}
+
+.folders-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.folder-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.folder-item:hover {
+  background-color: #f8f9fa;
+}
+
+.folder-item svg {
+  fill: #5f6368;
+}
+
+.folder-item span {
+  font-size: 14px;
+  color: #202124;
+}
+
+/* 更新现有样式 */
+.result-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  transition: background-color 0.2s;
+}
+
+.result-item:hover {
+  background-color: #f8f9fa;
 }
 </style>
