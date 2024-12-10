@@ -1,29 +1,300 @@
+<script setup lang="ts">
+import {computed, ref} from 'vue'
+import {useRouter} from 'vue-router'
+import {groupBy} from '@/js/util'
+
+interface Result {
+  id: string,
+  title: string,
+  url: string,
+  type: 'bookmark' | 'tab' | 'history',
+  favicon: string
+}
+
+const typeLabels = {
+  tab: '标签页',
+  bookmark: '书签',
+  history: '历史'
+};
+const router = useRouter()
+const searchText = ref('')
+const searchResults = ref<Result[]>([])
+const isLoading = ref(false)
+const showResults = ref(false)
+
+// 搜索配置
+const CONFIG = {
+  maxResults: {
+    tabs: 20,        // 默认显示5个最近的标签页
+    bookmarks: 10,   // 默认显示5个最近的书签
+    history: 10      // 默认显示5个最近的历史记录
+  },
+  minQueryLength: 2,
+  debounceTime: 200
+};
+
+// 计算属性：搜索结果分组
+const groupedResults = computed(() => {
+  let groupResults = groupBy(searchResults.value, e => e.type);
+  const newObject = {}
+  let keys = Object.keys(groupResults);
+  keys.sort((a, b)=>{
+    if(a === 'tab'){
+      return -1;
+    }
+    if(a === 'history' && b !== 'tab'){
+      return -1;
+    }
+  })
+  for (let i in keys) {
+    newObject[keys[i]] = groupResults[keys[i]]
+  }
+  return newObject
+})
+
+let searchTimeout;
+// 防抖函数
+function debounce(func, wait) {
+  return function() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => func.apply(this, arguments), wait);
+  };
+}
+
+
+// 搜索函数
+const search = async () => {
+  console.log('开始搜索')
+  showResults.value = false
+  isLoading.value = true
+  if (!searchText.value.trim()) {
+    await showDefaultContent()
+    return
+  }
+
+  async function showDefaultContent(){
+    console.log('显示默认值')
+    isLoading.value = true
+    showResults.value = false
+    const [recentTabs, recentBookmarks, recentHistory] = await Promise.all([
+      getRecentTabs(),
+      getRecentBookmarks(),
+      getRecentHistory()
+    ]);
+    isLoading.value = false
+    searchResults.value.push(...[...recentTabs, ...recentBookmarks, ...recentHistory])
+    showResults.value = true
+  }
+
+
+// 获取最近的标签页
+  function getRecentTabs() {
+    return new Promise((resolve) => {
+      chrome.tabs.query({ currentWindow: true }, (tabs) => {
+        resolve(tabs.slice(0, CONFIG.maxResults.tabs).map(mapTab));
+      });
+    });
+  }
+
+// 获取最近的书签
+  function getRecentBookmarks() {
+    return new Promise((resolve) => {
+      chrome.bookmarks.getRecent(CONFIG.maxResults.bookmarks, (bookmarks) => {
+        resolve(bookmarks.map(mapBookmarks));
+      });
+    });
+  }
+
+// 获取最近的历史记录
+  function getRecentHistory() {
+    return new Promise((resolve) => {
+      if (!chrome.history) {
+        resolve([]);
+        return;
+      }
+      chrome.history.search({
+        text: '',
+        maxResults: CONFIG.maxResults.history,
+        startTime: 0
+      }, (history) => {
+        resolve(history.map(mapHistory));
+      });
+    });
+  }
+
+
+  const query = searchText.value.toLowerCase()
+  const results = []
+
+  function mapBookmarks(item) {
+    return {
+      id: item.id,
+      title: item.title,
+      url: item.url,
+      type: 'bookmark',
+      favicon: item.url ? `chrome://favicon/${item.url}` : null
+    }
+  }
+
+  function mapTab(tab) {
+    return {
+      id: tab.id,
+      title: tab.title,
+      url: tab.url,
+      type: 'tab',
+      favicon: tab.favIconUrl,
+      groupId: tab.groupId
+    }
+  }
+
+  function mapHistory(his) {
+    return {
+      id: his.id,
+      title: his.title,
+      url: his.url,
+      type: 'history',
+      favicon: his.url ? `chrome://favicon/${his.url}` : null
+    }
+  }
+
+  try {
+    // 搜索书签
+    const bookmarkResults = await new Promise((resolve) => {
+      chrome.bookmarks.search(query, (items) => {
+        resolve(items.map(mapBookmarks))
+      })
+    })
+    results.push(...bookmarkResults)
+
+    // 搜索标签页
+    const tabs = await chrome.tabs.query({})
+    const tabResults = tabs
+        .filter(tab =>
+            tab.title.toLowerCase().includes(query) ||
+            tab.url.toLowerCase().includes(query)
+        )
+        .map(mapTab)
+    results.push(...tabResults)
+
+    const historyResults = await new Promise((resolve)=> {
+      chrome.history.search({
+        text: query,
+        startTime: 0
+      }, (history) => {
+        resolve(history.map(mapHistory));
+      });
+    });
+    results.push(...historyResults)
+
+    searchResults.value = results
+    showResults.value = true
+  } catch (error) {
+    console.error('搜索失败:', error)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const debounceSearch = debounce(search, CONFIG.debounceTime);
+// 处理搜索结果点击
+const handleResultClick = async (result) => {
+  if (result.type === 'bookmark') {
+    // 打开书签
+    chrome.tabs.create({url: result.url})
+  } else if (result.type === 'tab') {
+    // 切换到对应标签页
+    chrome.tabs.update(result.id, {active: true})
+    chrome.windows.update(result.windowId, {focused: true})
+  } else if (result.type === 'history'){
+    chrome.tabs.create({url: result.url})
+  }
+  // 清空搜索
+  //clearSearch()
+}
+
+// 清空搜索
+const clearSearch = () => {
+  searchText.value = ''
+  searchResults.value = []
+  showResults.value = false
+}
+
+// 处理搜索框失焦
+const handleBlur = () => {
+  // 使用 setTimeout 确保点击结果项能够触发
+  setTimeout(() => {
+
+    if (searchResults.value.length == 0) {
+    showResults.value = false
+      }
+  }, 200)
+}
+
+// 处理搜索框聚焦
+const handleFocus = () => {
+  if (searchResults.value.length > 0) {
+    showResults.value = true
+  }
+}
+
+const init = ()=>{
+  search()
+}
+init()
+</script>
 <template>
-<div class="search-container">
+  <div class="search-container">
     <h1 class="page-title">全局搜索</h1>
-    <div class="search-box">
-        <input type="text" id="searchInput" placeholder="搜索标签页、书签、历史记录..." autofocus>
-        <div class="search-icon">🔍</div>
+    <div class="search-wrapper">
+      <input type="text" id="searchInput" placeholder="搜索标签页、书签、历史记录..." autofocus @input="debounceSearch"
+             v-model="searchText" @blur="handleBlur" @focus="handleFocus">
+      <div class="search-icon">🔍</div>
     </div>
-    <div id="searchStats" class="search-stats"></div>
-    <div id="searchResults" class="results-container"></div>
-</div>
+    <div id="searchResults" class="results-container">
+      <div v-if="isLoading" class="loading">加载中...</div>
+      <div v-for="(arr, key) in groupedResults" class="search-box" v-if="showResults">
+        <div id="searchStats" class="search-stats"></div>
+        <div class="group-container">
+          <div class="group-header">{{ typeLabels[key] }}</div>
+          <div class="result-item" v-for="item in arr" @click="handleResultClick(item)">
+            <img class="result-icon" v-bind:src="item.favicon">
+            <div class="result-info">
+              <div class="result-title">{{ item.title }}</div>
+              <div class="result-url">{{ item.url }}</div>
+            </div>
+            <span :class="['result-type','type-' + item.type]">{{ typeLabels[item.type] }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
 </template>
+
+
 <style>
 body {
   margin: 0;
   padding: 20px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: #f5f5f5;
-  min-width: 600px;
+  //min-width: 600px;
 }
 
 .search-container {
-  max-width: 800px;
+  //max-width: 800px;
   margin: 0 auto;
 }
 
+.search-wrapper{
+  margin-bottom: 10px;
+  display: flex;
+  position: relative;
+}
+
 .search-box {
+  width: 0;
+  flex-grow: 1;
   position: relative;
   margin-bottom: 20px;
 }
@@ -34,7 +305,7 @@ body {
   font-size: 16px;
   border: none;
   border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   outline: none;
   box-sizing: border-box;
 }
@@ -50,9 +321,10 @@ body {
 .results-container {
   background: white;
   border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   max-height: 500px;
   overflow-y: auto;
+  display: flex;
 }
 
 .result-group {
@@ -72,6 +344,7 @@ body {
 }
 
 .result-item {
+  height: 40px;
   display: flex;
   align-items: center;
   padding: 12px 16px;
@@ -185,7 +458,7 @@ body {
 .action-card:hover {
   background: #f8f9fa;
   transform: translateY(-2px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .action-icon {
@@ -230,12 +503,12 @@ body {
   background: white;
   border-radius: 8px;
   padding: 16px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: all 0.2s;
 }
 
 .card:hover {
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
 }
 
@@ -322,122 +595,3 @@ body {
   color: #d93025;
 }
 </style>
-
-<script setup>
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
-
-const router = useRouter()
-const searchText = ref('')
-const searchResults = ref([])
-const isLoading = ref(false)
-const showResults = ref(false)
-
-// 计算属性：搜索结果分组
-const groupedResults = computed(() => {
-  const groups = {
-    bookmarks: [],
-    tabs: []
-  }
-  
-  searchResults.value.forEach(item => {
-    if (item.type === 'bookmark') {
-      groups.bookmarks.push(item)
-    } else if (item.type === 'tab') {
-      groups.tabs.push(item)
-    }
-  })
-  
-  return groups
-})
-
-// 搜索函数
-const search = async () => {
-  if (!searchText.value.trim()) {
-    searchResults.value = []
-    showResults.value = false
-    return
-  }
-
-  isLoading.value = true
-  const query = searchText.value.toLowerCase()
-  const results = []
-
-  try {
-    // 搜索书签
-    const bookmarkResults = await new Promise((resolve) => {
-      chrome.bookmarks.search(query, (items) => {
-        resolve(items.map(item => ({
-          id: item.id,
-          title: item.title,
-          url: item.url,
-          type: 'bookmark',
-          favicon: item.url ? `chrome://favicon/${item.url}` : null
-        })))
-      })
-    })
-    results.push(...bookmarkResults)
-
-    // 搜索标签页
-    const tabs = await chrome.tabs.query({})
-    const tabResults = tabs
-      .filter(tab => 
-        tab.title.toLowerCase().includes(query) || 
-        tab.url.toLowerCase().includes(query)
-      )
-      .map(tab => ({
-        id: tab.id,
-        title: tab.title,
-        url: tab.url,
-        type: 'tab',
-        favicon: tab.favIconUrl,
-        groupId: tab.groupId
-      }))
-    results.push(...tabResults)
-
-    searchResults.value = results
-    showResults.value = true
-  } catch (error) {
-    console.error('搜索失败:', error)
-  } finally {
-    isLoading.value = false
-  }
-}
-
-// 处理搜索结果点击
-const handleResultClick = async (result) => {
-  if (result.type === 'bookmark') {
-    // 打开书签
-    chrome.tabs.create({ url: result.url })
-  } else if (result.type === 'tab') {
-    // 切换到对应标签页
-    chrome.tabs.update(result.id, { active: true })
-    chrome.windows.update(result.windowId, { focused: true })
-  }
-  // 清空搜索
-  clearSearch()
-}
-
-// 清空搜索
-const clearSearch = () => {
-  searchText.value = ''
-  searchResults.value = []
-  showResults.value = false
-}
-
-// 处理搜索框失焦
-const handleBlur = () => {
-  // 使用 setTimeout 确保点击结果项能够触发
-  setTimeout(() => {
-    showResults.value = false
-  }, 200)
-}
-
-// 处理搜索框聚焦
-const handleFocus = () => {
-  if (searchResults.value.length > 0) {
-    showResults.value = true
-  }
-}
-</script>
-
