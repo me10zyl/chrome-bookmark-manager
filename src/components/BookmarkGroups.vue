@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted , onUnmounted} from 'vue'
 import BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 
 const bookmarkGroups = ref<BookmarkTreeNode[]>([])
@@ -103,9 +103,27 @@ const openAllBookmarks = (bookmarks) => {
   })
 }
 
+const closeAllDropdowns = () => {
+  bookmarkGroups.value.forEach(group => {
+    group.showDropdown = false
+  })
+}
+
+const handleDocumentClick = (event) => {
+  if (!event.target.closest('.dropdown')) {
+    closeAllDropdowns()
+  }
+}
 
 
-onMounted(fetchBookmarkGroups)
+onMounted(()=>{
+    fetchBookmarkGroups()
+    document.addEventListener('click', handleDocumentClick)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleDocumentClick)
+})
 </script>
 
 <template>
@@ -125,14 +143,14 @@ onMounted(fetchBookmarkGroups)
               </button>
               <div :class="{'dropdown-menu': true, show: group.showDropdown}">
                 <button class="dropdown-item"
-                        @click="editingGroupId = group.id">
+                        @click="closeAllDropdowns(); editingGroupId = group.id">
                   <svg viewBox="0 0 24 24" width="16" height="16">
                     <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
                   </svg>
                   <span>重命名</span>
                 </button>
                 <button class="dropdown-item"
-                        @click="deleteGroup(group.id)">
+                        @click="closeAllDropdowns(); deleteGroup(group.id)">
                   <svg viewBox="0 0 24 24" width="16" height="16">
                     <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
                   </svg>
@@ -149,11 +167,11 @@ onMounted(fetchBookmarkGroups)
                    @keyup.esc="editingGroupId = null"
                    ref="editInput">
             <div class="edit-actions">
-              <button class="save-name-btn"
+              <button class="save-name-btn action-btn"
                       @click="updateGroupName(group.id, $event.target.parentElement.previousElementSibling.value)">
                 保存
               </button>
-              <button class="cancel-edit-btn"
+              <button class="cancel-edit-btn action-btn"
                       @click="editingGroupId = null">
                 取消
               </button>
@@ -185,7 +203,7 @@ onMounted(fetchBookmarkGroups)
                     title="删除书签"
                     @click="deleteBookmark(bookmark.id)">
               <svg viewBox="0 0 24 24" width="16" height="16">
-                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"  fill="#e10a1d"/>
               </svg>
             </button>
           </div>
@@ -202,6 +220,52 @@ body {
   margin: 0;
   padding: 20px;
   background: #f5f5f5;
+}
+
+.group-edit-form{
+  display: flex;
+  column-gap: 10px;
+}
+
+.edit-actions{
+  display: flex;
+  column-gap: 10px;
+}
+
+.delete-bookmark-btn{
+  background: #fff;
+  padding: 5px 16px 5px 16px;
+  border-radius: 4px;
+  border: 1px solid #dadce0;
+  cursor: pointer;
+  color: #e10a1d;
+}
+
+.group-edit-form input{
+  box-shadow: rgba(0, 0, 0, 0.1) 0px 2px 6px;
+  padding: 5px 40px 5px 16px;
+  border-radius: 8px;
+  box-sizing: border-box;
+  outline: none;
+  border: none;
+}
+
+.action-btn {
+  padding: 5px 10px;
+  border-radius: 4px;
+  border: 1px solid #dadce0;
+  background: white;
+  cursor: pointer;
+  font-size: 14px;
+  color: #3c4043;
+  flex-shrink: 0;
+  /*  //overflow: hidden;
+    //text-overflow: ellipsis;
+    //white-space: nowrap;*/
+}
+
+.action-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
 .container {
@@ -378,6 +442,7 @@ body {
   display: inline-flex;
   margin-left: 8px;
   flex-shrink: 0;
+  align-items: center;
 }
 
 

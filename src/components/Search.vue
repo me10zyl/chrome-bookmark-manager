@@ -730,8 +730,8 @@ body {
   color: #3c4043;
   flex-shrink: 0;
 /*  //overflow: hidden;
-  //text-overflow: ellipsis;*/
-  //white-space: nowrap;
+  //text-overflow: ellipsis;
+  //white-space: nowrap;*/
 }
 
 .action-btn:hover {
