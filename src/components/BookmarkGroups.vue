@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted , onUnmounted} from 'vue'
+import {onMounted, onUnmounted, ref} from 'vue'
 import BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
+import Tab = chrome.tabs.Tab;
 
 const bookmarkGroups = ref<BookmarkTreeNode[]>([])
 const editingGroupId = ref(null)
@@ -94,13 +95,43 @@ const deleteBookmark = async (bookmarkId) => {
   }
 }
 
+const openBookmark = async (bookmark, winId: number)=>{
+
+  let tab = null;
+  if (bookmark.url) {
+    console.log('createTab', winId)
+     tab = await chrome.tabs.create({url: bookmark.url, active: false, windowId: winId});
+  }
+  return tab
+}
+
 // 打开所有书签
-const openAllBookmarks = (bookmarks) => {
-  bookmarks.forEach(bookmark => {
-    if (bookmark.url) {
-      chrome.tabs.create({ url: bookmark.url, active: false })
+const openAllBookmarks = async (bookmarks) => {
+  const tabs: Tab[] = []
+  if(bookmarks.length > 0){
+    let window = await chrome.windows.create();
+    const promises = []
+    for (let i = 0; i < bookmarks.length; i++) {
+      promises.push(openBookmark(bookmarks[i], window.id))
     }
-  })
+    tabs.push(...await Promise.all(promises))
+    console.log(tabs)
+    let groupId = await chrome.tabs.group({
+      tabIds: [tabs.map(t => t.id)[0]],
+      createProperties: {
+        windowId: window.id
+      }
+    })
+    chrome.tabs.group({
+      tabIds: [...tabs.map(t=>t.id).slice(1,tabs.length)],
+      groupId: groupId
+    })
+    let winTabs = await chrome.tabs.query({
+      windowId: window.id
+    });
+    chrome.tabs.remove(winTabs[0].id)
+    // chrome.tabs.discard(winTabs[0].id)
+  }
 }
 
 const closeAllDropdowns = () => {
