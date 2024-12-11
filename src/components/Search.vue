@@ -1,17 +1,20 @@
 <script setup lang="ts">
-import {computed, ref, onMounted} from 'vue'
+import {computed, ref} from 'vue'
 import {useRouter} from 'vue-router'
 import {groupBy} from '@/js/util'
 import BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 import Tab = chrome.tabs.Tab;
 
-interface Result {
+interface Result{
   id: string,
   title: string,
   url: string,
   type: 'bookmark' | 'tab' | 'history',
   favicon: string,
-  checked?: boolean
+  checked?: boolean,
+  windowId?: number,
+  windowTitle?: string,
+  lastAccessed?: number
 }
 
 const typeLabels = {
@@ -94,7 +97,7 @@ const search = async () => {
   function getRecentTabs() {
     return new Promise((resolve) => {
       chrome.tabs.query({ }, (tabs: Tab[]) => {
-        resolve(tabs.map(mapTab));
+        resolve(sortTab(tabs.map(mapTab)));
       });
     });
   }
@@ -147,7 +150,8 @@ const search = async () => {
       type: 'tab',
       favicon: tab.favIconUrl,
       groupId: tab.groupId,
-      windowId: tab.windowId
+      windowId: tab.windowId,
+      lastAccessed : tab.lastAccessed
     }
   }
 
@@ -159,6 +163,19 @@ const search = async () => {
       type: 'history',
       favicon: his.url ? `chrome://favicon/${his.url}` : null
     }
+  }
+
+  function extractDomain(url: string) {
+    return url.match(/^\w+:\/\/([^/]+?)/)[1];
+  }
+
+  function sortTab(tabResults: Result[]) {
+    if(tabResults.length > 0) {
+      tabResults.sort((a, b) => {
+        return b.lastAccessed - a.lastAccessed;
+      });
+    }
+    return tabResults
   }
 
   try {
@@ -178,6 +195,7 @@ const search = async () => {
             tab.url.toLowerCase().includes(query)
         )
         .map(mapTab)
+    sortTab(tabResults)
     results.push(...tabResults)
 
     const historyResults = await new Promise((resolve)=> {
@@ -317,6 +335,24 @@ const createBookmarkGroup = ()=>{
     });
   });
 }
+
+// 关闭标签页
+const closeTab = async (tab) => {
+  try {
+    await chrome.tabs.remove(tab.id)
+    // 从搜索结果中移除已关闭的标签
+    searchResults.value = searchResults.value.filter(result =>
+        !(result.type === 'tab' && result.id === tab.id)
+    )
+    // 如果没有搜索结果了，隐藏结果框
+    if (searchResults.value.length === 0) {
+      showResults.value = false
+    }
+  } catch (error) {
+    console.error('关闭标签页失败:', error)
+    alert('关闭失败，请重试')
+  }
+}
 </script>
 <template>
   <div class="search-container">
@@ -351,6 +387,16 @@ const createBookmarkGroup = ()=>{
               <div class="result-url">{{ item.url }}</div>
             </div>
             <span :class="['result-type','type-' + item.type]">{{ typeLabels[item.type] }}</span>
+            <button
+                class="close-tab-btn"
+                title="关闭标签页"
+                @click="closeTab(item)"
+                v-if="item.type === 'tab'"
+            >
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -367,6 +413,64 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: #f5f5f5;
   /*min-width: 600px;*/
+}
+/* 添加关闭按钮样式 */
+.close-tab-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 6px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.close-tab-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.close-tab-btn svg {
+  fill: #5f6368;
+}
+
+.close-tab-btn:hover svg {
+  fill: #d93025;
+}
+
+/* 添加动画效果 */
+.result-item {
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 添加移除动画 */
+.result-item.removing {
+  animation: fadeOut 0.2s ease forwards;
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
 }
 .select-checkbox{
   margin-right: 10px;
