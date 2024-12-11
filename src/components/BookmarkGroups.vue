@@ -114,7 +114,7 @@ onMounted(fetchBookmarkGroups)
       <div class="group-header">
         <div class="group-title-wrapper">
           <div class="group-info" v-show="editingGroupId !== group.id">
-            <span class="group-title">{{ group.title }}</span>
+            <span class="group-title">{{ group.displayTitle }}</span>
             <div class="dropdown">
               <button class="edit-group-btn" title="更多操作" @click="group.showDropdown = !group.showDropdown">
                 <svg viewBox="0 0 24 24" width="16" height="16">
