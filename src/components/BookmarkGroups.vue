@@ -130,7 +130,6 @@ const openAllBookmarks = async (bookmarks) => {
       windowId: window.id
     });
     chrome.tabs.remove(winTabs[0].id)
-    // chrome.tabs.discard(winTabs[0].id)
   }
 }
 
