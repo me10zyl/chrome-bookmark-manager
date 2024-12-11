@@ -426,7 +426,7 @@ body {
 }
 
 .edit-group-btn {
-  background: #79d150;
+  background: transparent;
   color: rgb(247, 241, 241);
   border: none;
   padding: 8px 16px;
