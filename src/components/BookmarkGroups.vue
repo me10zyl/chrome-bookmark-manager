@@ -6,6 +6,7 @@ const bookmarkGroups = ref<BookmarkTreeNode[]>([])
 const editingGroupId = ref(null)
 
 // 获取书签组
+const PREFIX = '[TabGroup]';
 const fetchBookmarkGroups = async () => {
   // const tree = await new Promise(resolve => {
   //   chrome.bookmarks.getTree(resolve)
@@ -33,9 +34,9 @@ const fetchBookmarkGroups = async () => {
 
       chrome.bookmarks.getChildren(results[0].id, function(children) {
         const bookmarkGroups = children.filter(child =>
-            child.title.startsWith('[TabGroup]')
+            child.title.startsWith(PREFIX)
         ).map(group => {
-          group.displayTitle = group.title.replace('[TabGroup]', '');
+          group.displayTitle = group.title.replace(PREFIX, '');
           return group;
         });
 
@@ -59,6 +60,7 @@ const fetchBookmarkGroups = async () => {
 // 更新组名
 const updateGroupName = async (groupId, newTitle) => {
   try {
+    newTitle = PREFIX + newTitle;
     await chrome.bookmarks.update(String(groupId), { title: newTitle })
     editingGroupId.value = null
     await fetchBookmarkGroups()
@@ -142,13 +144,13 @@ onMounted(fetchBookmarkGroups)
           <div class="group-edit-form" v-show="editingGroupId === group.id">
             <input type="text"
                    class="group-name-input"
-                   :value="group.title"
+                   :value="group.displayTitle"
                    @keyup.enter="updateGroupName(group.id, $event.target.value)"
                    @keyup.esc="editingGroupId = null"
                    ref="editInput">
             <div class="edit-actions">
               <button class="save-name-btn"
-                      @click="updateGroupName(group.id, $event.target.previousElementSibling.value)">
+                      @click="updateGroupName(group.id, $event.target.parentElement.previousElementSibling.value)">
                 保存
               </button>
               <button class="cancel-edit-btn"
