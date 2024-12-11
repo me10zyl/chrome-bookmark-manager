@@ -4,6 +4,7 @@ import {useRouter} from 'vue-router'
 import {groupBy} from '@/js/util'
 import BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 import Tab = chrome.tabs.Tab;
+import HistoryItem = chrome.history.HistoryItem;
 
 interface Result{
   id: string,
@@ -14,7 +15,8 @@ interface Result{
   checked?: boolean,
   windowId?: number,
   windowTitle?: string,
-  lastAccessed?: number
+  lastAccessed?: number,
+  lastVisitTime?: number
 }
 
 const typeLabels = {
@@ -32,8 +34,8 @@ const showResults = ref(false)
 const CONFIG = {
   maxResults: {
     tabs: 20,        // 默认显示5个最近的标签页
-    bookmarks: 10,   // 默认显示5个最近的书签
-    history: 10      // 默认显示5个最近的历史记录
+    bookmarks: 12,   // 默认显示5个最近的书签
+    history: 12      // 默认显示5个最近的历史记录
   },
   minQueryLength: 2,
   debounceTime: 200
@@ -111,6 +113,19 @@ const search = async () => {
     });
   }
 
+  function sortHistory(historyList: Result[]) {
+    historyList.sort((a, b)=>{
+      if(a.lastAccessed > b.lastAccessed){
+        return -1
+      }
+      if(a.lastAccessed < b.lastAccessed){
+        return 1
+      }
+      return 0
+    })
+    return historyList;
+  }
+
 // 获取最近的历史记录
   function getRecentHistory() {
     return new Promise((resolve) => {
@@ -123,7 +138,7 @@ const search = async () => {
         maxResults: CONFIG.maxResults.history,
         startTime: 0
       }, (history) => {
-        resolve(history.map(mapHistory));
+        resolve(sortHistory(history.map(mapHistory)));
       });
     });
   }
@@ -155,13 +170,14 @@ const search = async () => {
     }
   }
 
-  function mapHistory(his) {
+  function mapHistory(his: HistoryItem):Result {
     return {
       id: his.id,
       title: his.title,
       url: his.url,
       type: 'history',
-      favicon: his.url ? `chrome://favicon/${his.url}` : null
+      favicon: his.url ? `chrome://favicon/${his.url}` : null,
+      lastVisitTime: his.lastVisitTime
     }
   }
 
@@ -181,8 +197,9 @@ const search = async () => {
   try {
     // 搜索书签
     const bookmarkResults: Result[] = await new Promise((resolve) => {
+      console.log('书签搜索', query)
       chrome.bookmarks.search(query, (items) => {
-        resolve(items.map(mapBookmarks))
+        resolve(items.slice(0, CONFIG.maxResults.bookmarks).map(mapBookmarks))
       })
     })
     results.push(...bookmarkResults)
@@ -203,7 +220,7 @@ const search = async () => {
         text: query,
         startTime: 0
       }, (history) => {
-        resolve(history.map(mapHistory));
+        resolve(sortHistory(history.map(mapHistory)));
       });
     });
     results.push(...historyResults)
