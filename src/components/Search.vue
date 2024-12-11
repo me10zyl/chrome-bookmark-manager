@@ -3,6 +3,7 @@ import {computed, ref, onMounted} from 'vue'
 import {useRouter} from 'vue-router'
 import {groupBy} from '@/js/util'
 import BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
+import Tab = chrome.tabs.Tab;
 
 interface Result {
   id: string,
@@ -92,8 +93,8 @@ const search = async () => {
 // 获取最近的标签页
   function getRecentTabs() {
     return new Promise((resolve) => {
-      chrome.tabs.query({ currentWindow: true }, (tabs) => {
-        resolve(tabs.slice(0, CONFIG.maxResults.tabs).map(mapTab));
+      chrome.tabs.query({ }, (tabs: Tab[]) => {
+        resolve(tabs.map(mapTab));
       });
     });
   }
@@ -138,14 +139,15 @@ const search = async () => {
     }
   }
 
-  function mapTab(tab) : Result {
+  function mapTab(tab: Tab) : Result {
     return {
       id: tab.id,
       title: tab.title,
       url: tab.url,
       type: 'tab',
       favicon: tab.favIconUrl,
-      groupId: tab.groupId
+      groupId: tab.groupId,
+      windowId: tab.windowId
     }
   }
 
