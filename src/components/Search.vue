@@ -16,7 +16,9 @@ interface Result{
   windowId?: number,
   windowTitle?: string,
   lastAccessed?: number,
-  lastVisitTime?: number
+  lastVisitTime?: number,
+  status?: string,
+  origin?: Tab
 }
 
 const typeLabels = {
@@ -29,6 +31,13 @@ const searchText = ref('')
 const searchResults = ref<Result[]>([])
 const isLoading = ref(false)
 const showResults = ref(false)
+
+function extractDomain(url: string) {
+  let regExpMatchArray = url.match(/^.+:\/\/([^/]+?)\//);
+  console.log(regExpMatchArray)
+  return regExpMatchArray[1];
+}
+
 
 // 搜索配置
 const CONFIG = {
@@ -57,6 +66,7 @@ const groupedResults = computed(() => {
   for (let i in keys) {
     newObject[keys[i]] = groupResults[keys[i]]
   }
+  delete newObject['tab']
   return newObject
 })
 
@@ -99,7 +109,10 @@ const search = async () => {
   function getRecentTabs() {
     return new Promise((resolve) => {
       chrome.tabs.query({ }, (tabs: Tab[]) => {
-        resolve(sortTab(tabs.map(mapTab)));
+        console.log('recentTabs', tabs)
+        let results1 = sortTab(tabs.map(mapTab));
+        console.log('results1', results1)
+        resolve(results1);
       });
     });
   }
@@ -166,7 +179,9 @@ const search = async () => {
       favicon: tab.favIconUrl,
       groupId: tab.groupId,
       windowId: tab.windowId,
-      lastAccessed : tab.lastAccessed
+      lastAccessed : tab.lastAccessed,
+      status: tab.status,
+      origin: tab
     }
   }
 
@@ -181,9 +196,6 @@ const search = async () => {
     }
   }
 
-  function extractDomain(url: string) {
-    return url.match(/^\w+:\/\/([^/]+?)/)[1];
-  }
 
   function sortTab(tabResults: Result[]) {
     if(tabResults.length > 0) {
@@ -258,7 +270,7 @@ const clearSearch = () => {
   showResults.value = false
 }
 
-// 处理搜索框失��
+
 const handleBlur = () => {
   // 使用 setTimeout 确保点击结果项能够触发
   setTimeout(() => {
@@ -370,6 +382,23 @@ const closeTab = async (tab) => {
     alert('关闭失败，请重试')
   }
 }
+
+// 按窗口和 URL 分组标签页
+const groupedTabs = computed(() => {
+  const groups = {}
+  searchResults.value.filter(e=>e.type === 'tab').forEach(tab => {
+    if (!groups[tab.windowId]) {
+      groups[tab.windowId] = {}
+    }
+    let extraUrl = extractDomain(tab.url);
+    if (!groups[tab.windowId][extraUrl]) {
+      groups[tab.windowId][extraUrl] = []
+    }
+    groups[tab.windowId][extraUrl].push(tab)
+  })
+  console.log(groups)
+  return groups
+})
 </script>
 <template>
   <div class="search-container">
@@ -381,23 +410,63 @@ const closeTab = async (tab) => {
     </div>
     <div id="searchResults" class="results-container">
       <div v-if="isLoading" class="loading">加载中...</div>
-      <div v-for="(arr, key) in groupedResults" class="search-box" v-if="showResults">
+    <div v-if="groupedTabs" class="search-box">
+      <div class="group-header">
+        <span>标签</span>
+        <div class="batch-select-container">
+          <button @click="batchSelect" class="action-btn" v-if="!showBatchSelect">批量选择</button>
+          <div class="batch-actions" v-if="showBatchSelect">
+            <button id="selectAll" class="action-btn" @click="selectAll">全选</button>
+            <button id="createGroup" class="action-btn" @click="createBookmarkGroup">创建书签组</button>
+            <span class="selected-count">已选择: {{batchSelectCount}}</span>
+            <button class="action-btn" @click="showBatchSelect = false" id="cancelBtn">取消</button>
+          </div>
+        </div>
+      </div>
+        <div v-for="(windowTabs, windowId) in groupedTabs" :key="windowId" class="window-group">
+          <div class="window-header">
+            <svg viewBox="0 0 24 24" width="16" height="16">
+              <path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14z"/>
+            </svg>
+            <span>窗口 {{ windowId }}</span>
+          </div>
+          <div v-for="(urlTabs, url) in windowTabs" :key="url" class="url-group">
+            <div class="url-header">
+              <span>{{ url }}</span>
+            </div>
+            <div v-for="tab in urlTabs" :key="tab.id" class="result-item">
+              <div class="result-content" @click="handleResultClick(tab)">
+                <input type="checkbox" class="select-checkbox" v-if="showBatchSelect" v-model="tab.checked"/>
+                <img :src="tab.favicon" class="result-icon" alt="">
+                <div class="result-info">
+                  <div class="result-title">{{ tab.title || '无标题' }}</div>
+                  <div class="result-url">{{ tab.url }}</div>
+                </div>
+                <span :class="['result-type','type-tab']">{{ typeLabels['tab'] }}</span>
+              </div>
+              <div class="result-actions">
+                <button
+                    class="action-btn close-tab-btn"
+                    title="关闭标签页"
+                    @click="closeTab(tab)"
+                >
+                  <svg viewBox="0 0 24 24" width="16" height="16">
+                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+   <div v-for="(arr, key) in groupedResults" class="search-box" v-if="showResults">
         <div id="searchStats" class="search-stats"></div>
         <div class="group-container">
           <div class="group-header">
             <span>{{ typeLabels[key] }}</span>
-            <div class="batch-select-container" v-if="key === 'tab'">
-              <button @click="batchSelect" class="action-btn" v-if="!showBatchSelect">批量选择</button>
-              <div class="batch-actions" v-if="showBatchSelect">
-                <button id="selectAll" class="action-btn" @click="selectAll">全选</button>
-                <button id="createGroup" class="action-btn" @click="createBookmarkGroup">创建书签组</button>
-                <span class="selected-count">已选择: {{batchSelectCount}}</span>
-                <button class="action-btn" @click="showBatchSelect = false" id="cancelBtn">取消</button>
-              </div>
-            </div>
           </div>
           <div class="result-item" v-for="item in arr">
-            <input type="checkbox" class="select-checkbox" v-if="showBatchSelect && key === 'tab'" v-model="item.checked"/>
+
             <img class="result-icon" v-bind:src="item.favicon">
             <div class="result-info" @click="handleResultClick(item)">
               <div class="result-title">{{ item.title }}</div>
@@ -417,6 +486,7 @@ const closeTab = async (tab) => {
           </div>
         </div>
       </div>
+
     </div>
 
   </div>
@@ -926,5 +996,84 @@ body {
 
 .result-item:hover {
   background-color: #f8f9fa;
+}
+
+/* 样式更新 */
+.window-group {
+  margin-bottom: 16px;
+}
+
+.window-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: #f1f3f4;
+
+  font-weight: bold;
+}
+
+.url-group {
+  margin-left: 16px;
+  margin-top: 8px;
+}
+
+.url-header {
+  padding: 4px 16px;
+  font-size: 14px;
+  color: #5f6368;
+}
+
+.result-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  transition: background-color 0.2s;
+}
+
+.result-item:hover {
+  background-color: #f8f9fa;
+}
+
+.result-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.result-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.close-tab-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 6px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.close-tab-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.close-tab-btn svg {
+  fill: #5f6368;
+}
+
+.close-tab-btn:hover svg {
+  fill: #d93025;
 }
 </style>
