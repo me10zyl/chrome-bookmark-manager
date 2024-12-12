@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {computed, ref} from 'vue'
 import {useRouter} from 'vue-router'
-import {groupBy} from '@/js/util'
+import {groupBy, extractDomain} from '@/js/util'
 import BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 import Tab = chrome.tabs.Tab;
 import HistoryItem = chrome.history.HistoryItem;
@@ -31,12 +31,6 @@ const searchText = ref('')
 const searchResults = ref<Result[]>([])
 const isLoading = ref(false)
 const showResults = ref(false)
-
-function extractDomain(url: string) {
-  let regExpMatchArray = url.match(/^.+:\/\/([^/]+?)\//);
-  console.log(regExpMatchArray)
-  return regExpMatchArray[1];
-}
 
 
 // 搜索配置

@@ -2,6 +2,9 @@
 import {onMounted, onUnmounted, ref} from 'vue'
 import BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 import Tab = chrome.tabs.Tab;
+import TabGroup = chrome.tabGroups.TabGroup;
+import TabGroups from "@/components/TabGroups.vue";
+import {extractDomain} from "@/js/util";
 
 const bookmarkGroups = ref<BookmarkTreeNode[]>([])
 const editingGroupId = ref(null)
@@ -27,13 +30,13 @@ const fetchBookmarkGroups = async () => {
   //
   // traverse(tree)
   // bookmarkGroups.value = groups
-  bookmarkGroups.value = await new Promise((r)=>{
-    chrome.bookmarks.search({title: '我的标签组'}, function(results) {
+  bookmarkGroups.value = await new Promise((r) => {
+    chrome.bookmarks.search({title: '我的标签组'}, function (results) {
       if (results.length === 0) {
         return;
       }
 
-      chrome.bookmarks.getChildren(results[0].id, function(children) {
+      chrome.bookmarks.getChildren(results[0].id, function (children) {
         const bookmarkGroups = children.filter(child =>
             child.title.startsWith(PREFIX)
         ).map(group => {
@@ -49,7 +52,7 @@ const fetchBookmarkGroups = async () => {
               });
             })
         )).then(groups => {
-            r(groups)
+          r(groups)
         });
       });
     });
@@ -62,7 +65,7 @@ const fetchBookmarkGroups = async () => {
 const updateGroupName = async (groupId, newTitle) => {
   try {
     newTitle = PREFIX + newTitle;
-    await chrome.bookmarks.update(String(groupId), { title: newTitle })
+    await chrome.bookmarks.update(String(groupId), {title: newTitle})
     editingGroupId.value = null
     await fetchBookmarkGroups()
   } catch (error) {
@@ -95,43 +98,94 @@ const deleteBookmark = async (bookmarkId) => {
   }
 }
 
-const openBookmark = async (bookmark, winId: number)=>{
+const openBookmark = async (bookmark: chrome.bookmarks.BookmarkTreeNode, winId: number, active: boolean) => {
 
   let tab = null;
   if (bookmark.url) {
-    console.log('createTab', winId)
-     tab = await chrome.tabs.create({url: bookmark.url, active: false, windowId: winId});
+    tab = await chrome.tabs.create({url: bookmark.url, active: active, windowId: winId});
+    console.log(`创建标签成功,url=${bookmark.url},tab=`, tab)
   }
   return tab
 }
 
 // 打开所有书签
-const openAllBookmarks = async (bookmarks) => {
-  const tabs: Tab[] = []
-  if(bookmarks.length > 0){
-    let window = await chrome.windows.create();
+const openAllBookmarks = async (bookmarks: BookmarkTreeNode[], group: BookmarkTreeNode) => {
+
+
+  async function removeUnusedTab(windowId: number) {
+    let winTabs = await chrome.tabs.query({
+      windowId: windowId
+    });
+    for (let i = winTabs.length - 1; i >= 0; i--) {
+      if (winTabs[i].url === 'chrome://newtab/' || winTabs[i].pendingUrl === 'chrome://newtab/') {
+        await chrome.tabs.remove(winTabs[i].id)
+        console.log('删除没用的Tab', winTabs[i])
+      }
+    }
+  }
+
+  if (bookmarks.length == 0) {
+    return
+  }
+
+  console.log('打开书签组')
+  let tabGroups: TabGroup[] = await chrome.tabGroups.query({
+    title: group.displayTitle
+  });
+  let windowId: number = null;
+  if (tabGroups.length > 0) {
+    console.log('书签组Id不为空')
+    let tabGroupId = tabGroups[0].id
+    windowId = tabGroups[0].windowId
+    console.log(`存在书签组,groupId=${tabGroupId},windowId=${windowId}`)
+    await removeUnusedTab(windowId);
+    let existingTabs = await chrome.tabs.query({groupId: tabGroups[0].id});
+    console.log(`已存在${existingTabs.length}个标签页`, existingTabs)
+
+    let closedBookmarks = bookmarks.filter(e => existingTabs.map(ee => extractDomain(ee.url)).indexOf(extractDomain(e.url)) == -1);
+    let promises = [];
+    for (let i = 0; i < closedBookmarks.length; i++) {
+      promises.push(openBookmark(closedBookmarks[i], windowId, i == 0))
+    }
+    let newAddTabs = await Promise.all(promises);
+    console.log('新增的标签页', newAddTabs)
+    if(newAddTabs.length > 0) {
+      await chrome.tabs.group({
+        tabIds: newAddTabs.map(e => e.id),
+        groupId: tabGroupId
+      })
+    }
+    await chrome.tabs.update(existingTabs[0].id, {
+      active: true
+    })
+
+  } else {
+    const tabs: Tab[] = []
+
+    windowId = (await chrome.windows.create()).id;
+    await removeUnusedTab(windowId);
+    console.log(`不存在书签组,windowId=${windowId}`)
+    console.log('建立新窗口')
     const promises = []
+    console.log('创建标签windowId=', windowId)
     for (let i = 0; i < bookmarks.length; i++) {
-      promises.push(openBookmark(bookmarks[i], window.id))
+      promises.push(openBookmark(bookmarks[i], windowId, i == 0))
     }
     tabs.push(...await Promise.all(promises))
-    console.log(tabs)
-    let groupId = await chrome.tabs.group({
+    console.log('书签组Id为空')
+    let tabGroupId = await chrome.tabs.group({
       tabIds: [tabs.map(t => t.id)[0]],
       createProperties: {
-        windowId: window.id
+        windowId: windowId
       }
     })
-    chrome.tabs.group({
-      tabIds: [...tabs.map(t=>t.id).slice(1,tabs.length)],
-      groupId: groupId
+    await chrome.tabs.group({
+      tabIds: [...tabs.map(t => t.id).slice(1)],
+      groupId: tabGroupId
     })
-    let winTabs = await chrome.tabs.query({
-      windowId: window.id
-    });
-    chrome.tabs.remove(winTabs[0].id)
-
+    await chrome.tabGroups.update(tabGroupId, {title: group.displayTitle})
   }
+  await chrome.windows.update(windowId, {focused: true})
 }
 
 const closeAllDropdowns = () => {
@@ -147,9 +201,9 @@ const handleDocumentClick = (event) => {
 }
 
 
-onMounted(()=>{
-    fetchBookmarkGroups()
-    document.addEventListener('click', handleDocumentClick)
+onMounted(() => {
+  fetchBookmarkGroups()
+  document.addEventListener('click', handleDocumentClick)
 })
 
 onUnmounted(() => {
@@ -169,14 +223,16 @@ onUnmounted(() => {
             <div class="dropdown">
               <button class="edit-group-btn" title="更多操作" @click="group.showDropdown = !group.showDropdown">
                 <svg viewBox="0 0 24 24" width="16" height="16">
-                  <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+                  <path
+                      d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
                 </svg>
               </button>
               <div :class="{'dropdown-menu': true, show: group.showDropdown}">
                 <button class="dropdown-item"
                         @click="closeAllDropdowns(); editingGroupId = group.id">
                   <svg viewBox="0 0 24 24" width="16" height="16">
-                    <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                    <path
+                        d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
                   </svg>
                   <span>重命名</span>
                 </button>
@@ -212,7 +268,7 @@ onUnmounted(() => {
         <div class="group-actions">
           <button class="icon-btn open-all-btn"
                   title="打开所有"
-                  @click="openAllBookmarks(group.children)">
+                  @click="openAllBookmarks(group.children, group)">
             📂
           </button>
         </div>
@@ -221,7 +277,7 @@ onUnmounted(() => {
         <div v-for="bookmark in group.children"
              :key="bookmark.id"
              class="bookmark-item"
-             >
+        >
           <div class="bookmark-content">
             <img class="bookmark-icon" :src="`chrome://favicon/${bookmark.url}`" alt="">
             <div class="bookmark-info">
@@ -234,7 +290,7 @@ onUnmounted(() => {
                     title="删除书签"
                     @click="deleteBookmark(bookmark.id)">
               <svg viewBox="0 0 24 24" width="16" height="16">
-                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"  fill="#e10a1d"/>
+                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" fill="#e10a1d"/>
               </svg>
             </button>
           </div>
@@ -253,17 +309,17 @@ body {
   background: #f5f5f5;
 }
 
-.group-edit-form{
+.group-edit-form {
   display: flex;
   column-gap: 10px;
 }
 
-.edit-actions{
+.edit-actions {
   display: flex;
   column-gap: 10px;
 }
 
-.delete-bookmark-btn{
+.delete-bookmark-btn {
   background: #fff;
   padding: 5px 16px 5px 16px;
   border-radius: 4px;
@@ -272,7 +328,7 @@ body {
   color: #e10a1d;
 }
 
-.group-edit-form input{
+.group-edit-form input {
   box-shadow: rgba(0, 0, 0, 0.1) 0px 2px 6px;
   padding: 5px 40px 5px 16px;
   border-radius: 8px;
@@ -304,7 +360,7 @@ body {
   margin: 0 auto;
 }
 
-.group-info{
+.group-info {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -315,7 +371,7 @@ body {
   background: white;
   border-radius: 8px;
   margin-bottom: 20px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   animation: fadeIn 0.3s ease-out;
 }
@@ -508,7 +564,7 @@ body {
   margin-top: 4px;
   background: white;
   border-radius: 8px;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
   opacity: 0;
   visibility: hidden;
   transform: translateY(-10px);
