@@ -3,7 +3,6 @@ import {onMounted, onUnmounted, ref} from 'vue'
 import BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 import Tab = chrome.tabs.Tab;
 import TabGroup = chrome.tabGroups.TabGroup;
-import TabGroups from "@/components/TabGroups.vue";
 import {extractDomain} from "@/js/util";
 
 const bookmarkGroups = ref<BookmarkTreeNode[]>([])
@@ -57,8 +56,6 @@ const fetchBookmarkGroups = async () => {
       });
     });
   })
-
-  console.log('bookmarkGroups', bookmarkGroups)
 }
 
 // 更新组名
@@ -127,8 +124,9 @@ const openAllBookmarks = async (bookmarks: BookmarkTreeNode[], group: BookmarkTr
   if (bookmarks.length == 0) {
     return
   }
+  let newVar = await chrome.tabGroups.query({});
+  console.log('打开书签组', group.displayTitle, newVar)
 
-  console.log('打开书签组')
   let tabGroups: TabGroup[] = await chrome.tabGroups.query({
     title: group.displayTitle
   });
@@ -163,7 +161,7 @@ const openAllBookmarks = async (bookmarks: BookmarkTreeNode[], group: BookmarkTr
     const tabs: Tab[] = []
 
     windowId = (await chrome.windows.create()).id;
-    await removeUnusedTab(windowId);
+
     console.log(`不存在书签组,windowId=${windowId}`)
     console.log('建立新窗口')
     const promises = []
@@ -172,6 +170,7 @@ const openAllBookmarks = async (bookmarks: BookmarkTreeNode[], group: BookmarkTr
       promises.push(openBookmark(bookmarks[i], windowId, i == 0))
     }
     tabs.push(...await Promise.all(promises))
+    await removeUnusedTab(windowId);
     console.log('书签组Id为空')
     let tabGroupId = await chrome.tabs.group({
       tabIds: [tabs.map(t => t.id)[0]],
