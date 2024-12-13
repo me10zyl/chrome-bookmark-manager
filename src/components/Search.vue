@@ -429,10 +429,10 @@ const groupedTabs = computed(() => {
               <span>{{ url }}</span>
             </div>
             <div v-for="tab in urlTabs" :key="tab.id" class="result-item">
-              <div class="result-content" @click="handleResultClick(tab)">
+              <div class="result-content">
                 <input type="checkbox" class="select-checkbox" v-if="showBatchSelect" v-model="tab.checked"/>
                 <img :src="tab.favicon" class="result-icon" alt="">
-                <div class="result-info">
+                <div class="result-info"  @click="handleResultClick(tab)">
                   <div class="result-title">{{ tab.title || '无标题' }}</div>
                   <div class="result-url">{{ tab.url }}</div>
                 </div>
