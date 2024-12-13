@@ -437,10 +437,10 @@ const batchCloseSelectTabs = () => {
       <div v-if="isLoading" class="loading">加载中...</div>
       <div v-if="groupedTabs" class="search-box">
         <div class="group-header">
-          <span>标签</span>
+          <span>标签页</span>
           <div class="batch-select-container">
             <div v-if="!showBatchSelect" class="tab-stats">
-              窗口:{{ tabStats.windowCount }} 标签:{{ tabStats.tabCount }}
+              窗口:{{ tabStats.windowCount }} 标签页:{{ tabStats.tabCount }}
             </div>
             <button @click="batchSelect" class="action-btn" v-if="!showBatchSelect">批量选择</button>
             <div class="batch-actions" v-if="showBatchSelect">
