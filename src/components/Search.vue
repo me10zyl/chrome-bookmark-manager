@@ -6,7 +6,7 @@ import BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 import Tab = chrome.tabs.Tab;
 import HistoryItem = chrome.history.HistoryItem;
 
-interface Result{
+interface Result {
   id: string,
   title: string,
   url: string,
@@ -49,11 +49,11 @@ const groupedResults = computed(() => {
   let groupResults = groupBy(searchResults.value, e => e.type);
   const newObject = {}
   let keys = Object.keys(groupResults);
-  keys.sort((a, b)=>{
-    if(a === 'tab'){
+  keys.sort((a, b) => {
+    if (a === 'tab') {
       return -1;
     }
-    if(a === 'history' && b !== 'tab'){
+    if (a === 'history' && b !== 'tab') {
       return -1;
     }
   })
@@ -65,9 +65,10 @@ const groupedResults = computed(() => {
 })
 
 let searchTimeout;
+
 // 防抖函数
 function debounce(func, wait) {
-  return function() {
+  return function () {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => func.apply(this, arguments), wait);
   };
@@ -84,7 +85,7 @@ const search = async () => {
     return
   }
 
-  async function showDefaultContent(){
+  async function showDefaultContent() {
     console.log('显示默认值')
     isLoading.value = true
     showResults.value = false
@@ -102,7 +103,7 @@ const search = async () => {
 // 获取最近的标签页
   function getRecentTabs() {
     return new Promise((resolve) => {
-      chrome.tabs.query({ }, (tabs: Tab[]) => {
+      chrome.tabs.query({}, (tabs: Tab[]) => {
         console.log('recentTabs', tabs)
         let results1 = sortTab(tabs.map(mapTab));
         console.log('results1', results1)
@@ -121,11 +122,11 @@ const search = async () => {
   }
 
   function sortHistory(historyList: Result[]) {
-    historyList.sort((a, b)=>{
-      if(a.lastAccessed > b.lastAccessed){
+    historyList.sort((a, b) => {
+      if (a.lastAccessed > b.lastAccessed) {
         return -1
       }
-      if(a.lastAccessed < b.lastAccessed){
+      if (a.lastAccessed < b.lastAccessed) {
         return 1
       }
       return 0
@@ -154,7 +155,7 @@ const search = async () => {
   const query = searchText.value.toLowerCase()
   const results = []
 
-  function mapBookmarks(item) : Result {
+  function mapBookmarks(item): Result {
     return {
       id: item.id,
       title: item.title,
@@ -164,7 +165,7 @@ const search = async () => {
     }
   }
 
-  function mapTab(tab: Tab) : Result {
+  function mapTab(tab: Tab): Result {
     return {
       id: tab.id,
       title: tab.title,
@@ -173,13 +174,13 @@ const search = async () => {
       favicon: tab.favIconUrl,
       groupId: tab.groupId,
       windowId: tab.windowId,
-      lastAccessed : tab.lastAccessed,
+      lastAccessed: tab.lastAccessed,
       status: tab.status,
       origin: tab
     }
   }
 
-  function mapHistory(his: HistoryItem):Result {
+  function mapHistory(his: HistoryItem): Result {
     return {
       id: his.id,
       title: his.title,
@@ -192,11 +193,12 @@ const search = async () => {
 
 
   function sortTab(tabResults: Result[]) {
-    if(tabResults.length > 0) {
+    if (tabResults.length > 0) {
       tabResults.sort((a, b) => {
         return b.lastAccessed - a.lastAccessed;
       });
     }
+    console.log('sortTabResults', tabResults)
     return tabResults
   }
 
@@ -221,7 +223,7 @@ const search = async () => {
     sortTab(tabResults)
     results.push(...tabResults)
 
-    const historyResults = await new Promise((resolve)=> {
+    const historyResults = await new Promise((resolve) => {
       chrome.history.search({
         text: query,
         startTime: 0
@@ -250,7 +252,7 @@ const handleResultClick = async (result) => {
     // 切换到对应标签页
     chrome.tabs.update(result.id, {active: true})
     chrome.windows.update(result.windowId, {focused: true})
-  } else if (result.type === 'history'){
+  } else if (result.type === 'history') {
     chrome.tabs.create({url: result.url})
   }
   // 清空搜索
@@ -270,8 +272,8 @@ const handleBlur = () => {
   setTimeout(() => {
 
     if (searchResults.value.length == 0) {
-    showResults.value = false
-      }
+      showResults.value = false
+    }
   }, 200)
 }
 
@@ -282,26 +284,26 @@ const handleFocus = () => {
   }
 }
 
-const init = ()=>{
+const init = () => {
   search()
 }
 init()
 
 const showBatchSelect = ref<boolean>(false)
-const batchSelect = ()=>{
+const batchSelect = () => {
   showBatchSelect.value = true;
 }
-const batchSelectCount = computed(()=>{
-  return searchResults.value.filter(e=>e.checked).length
+const batchSelectCount = computed(() => {
+  return searchResults.value.filter(e => e.checked).length
 })
-const selectAll = ()=>{
+const selectAll = () => {
   for (let result of searchResults.value) {
-    if(result.type === 'bookmark'){
-      result.checked =  !result.checked
+    if (result.type === 'tab') {
+      result.checked = !result.checked
     }
   }
 }
-const createBookmarkGroup = ()=>{
+const createBookmarkGroup = () => {
 
   if (batchSelectCount.value === 0) {
     alert('请先选择标签页');
@@ -312,9 +314,9 @@ const createBookmarkGroup = ()=>{
   if (!groupName) return;
 
   // 确保根文件夹存在
-  function ensureRootFolder(title:string, parentId:string) : Promise<BookmarkTreeNode> {
+  function ensureRootFolder(title: string, parentId: string): Promise<BookmarkTreeNode> {
     return new Promise((resolve) => {
-      chrome.bookmarks.search({title: title}, function(results) {
+      chrome.bookmarks.search({title: title}, function (results) {
         if (results.length > 0) {
           // 如果找到了根文件夹，直接返回
           resolve(results[0]);
@@ -331,14 +333,14 @@ const createBookmarkGroup = ()=>{
 
   // 首先确保有一个根文件夹
   ensureRootFolder('我的标签组', '1').then((rootFolder: BookmarkTreeNode) => {
-    const selectedTabs:string[] = searchResults.value.filter(e=>e.checked).map(e=>e.id.toString())
+    const selectedTabs: string[] = searchResults.value.filter(e => e.checked).map(e => e.id.toString())
     console.log('selectTabs', selectedTabs)
     // 在根文件夹下创建新的书签组
     ensureRootFolder(`[TabGroup]${groupName}`,
-      rootFolder.id
-    ).then(function(folder) {
+        rootFolder.id
+    ).then(function (folder) {
       console.log('folder', folder)
-      chrome.tabs.query({}, function(tabs) {
+      chrome.tabs.query({}, function (tabs) {
         console.log('after tabs query', tabs)
         const selectedTabsInfo = tabs.filter(tab => selectedTabs.includes(tab.id.toString()));
         console.log('selectedTabsInfo', selectedTabsInfo)
@@ -380,7 +382,7 @@ const closeTab = async (tab) => {
 // 按窗口和 URL 分组标签页
 const groupedTabs = computed(() => {
   const groups = {}
-  searchResults.value.filter(e=>e.type === 'tab').forEach(tab => {
+  searchResults.value.filter(e => e.type === 'tab').forEach(tab => {
     if (!groups[tab.windowId]) {
       groups[tab.windowId] = {}
     }
@@ -393,6 +395,35 @@ const groupedTabs = computed(() => {
   console.log(groups)
   return groups
 })
+const tabStats = computed(() => {
+  const tabCount = searchResults.value.filter(e => e.type === 'tab').length
+  return {
+    windowCount: Object.keys(groupedTabs.value).length,
+    tabCount: tabCount
+  }
+})
+const batchCloseTabs = (tabs: Tab[] | Result[]) => {
+  try {
+    tabs.forEach(e => {
+      chrome.tabs.remove(e.id)
+    })
+    // 从搜索结果中移除已关闭的标签
+    searchResults.value = searchResults.value.filter(result =>
+        !(result.type === 'tab' && tabs.map(e=>e.id).indexOf(result.id)!=-1)
+    )
+    // 如果没有搜索结果了，隐藏结果框
+    if (searchResults.value.length === 0) {
+      showResults.value = false
+    }
+  } catch (error) {
+    console.error('关闭标签页失败:', error)
+    alert('关闭失败，请重试')
+  }
+}
+
+const batchCloseSelectTabs = () => {
+  batchCloseTabs(searchResults.value.filter(e => e.type === 'tab' && e.checked))
+}
 </script>
 <template>
   <div class="search-container">
@@ -404,19 +435,23 @@ const groupedTabs = computed(() => {
     </div>
     <div id="searchResults" class="results-container">
       <div v-if="isLoading" class="loading">加载中...</div>
-    <div v-if="groupedTabs" class="search-box">
-      <div class="group-header">
-        <span>标签</span>
-        <div class="batch-select-container">
-          <button @click="batchSelect" class="action-btn" v-if="!showBatchSelect">批量选择</button>
-          <div class="batch-actions" v-if="showBatchSelect">
-            <button id="selectAll" class="action-btn" @click="selectAll">全选</button>
-            <button id="createGroup" class="action-btn" @click="createBookmarkGroup">创建书签组</button>
-            <span class="selected-count">已选择: {{batchSelectCount}}</span>
-            <button class="action-btn" @click="showBatchSelect = false" id="cancelBtn">取消</button>
+      <div v-if="groupedTabs" class="search-box">
+        <div class="group-header">
+          <span>标签</span>
+          <div class="batch-select-container">
+            <div v-if="!showBatchSelect" class="tab-stats">
+              窗口:{{ tabStats.windowCount }} 标签:{{ tabStats.tabCount }}
+            </div>
+            <button @click="batchSelect" class="action-btn" v-if="!showBatchSelect">批量选择</button>
+            <div class="batch-actions" v-if="showBatchSelect">
+              <button id="selectAll" class="action-btn" @click="selectAll">全选</button>
+              <button id="selectAll" class="action-btn" @click="batchCloseSelectTabs">关闭</button>
+              <button id="createGroup" class="action-btn" @click="createBookmarkGroup">创建书签组</button>
+              <span class="selected-count">已选择: {{ batchSelectCount }}</span>
+              <button class="action-btn" @click="showBatchSelect = false" id="cancelBtn">取消</button>
+            </div>
           </div>
         </div>
-      </div>
         <div v-for="(windowTabs, windowId) in groupedTabs" :key="windowId" class="window-group">
           <div class="window-header">
             <svg viewBox="0 0 24 24" width="16" height="16">
@@ -427,12 +462,27 @@ const groupedTabs = computed(() => {
           <div v-for="(urlTabs, url) in windowTabs" :key="url" class="url-group">
             <div class="url-header">
               <span>{{ url }}</span>
+              <button class="url-header-close" @click="batchCloseTabs(urlTabs)">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="16" height="16">
+                  <!-- 背景矩形 -->
+                  <rect x="6" y="6" width="52" height="52" rx="6" fill="#E0E0E0"/>
+                  <!-- 第一层标签 -->
+                  <rect x="12" y="12" width="40" height="40" rx="4" fill="#B0BEC5"/>
+                  <!-- 第二层标签 -->
+                  <rect x="18" y="18" width="40" height="40" rx="4" fill="#90A4AE"/>
+                  <!-- 顶层标签 -->
+                  <rect x="24" y="24" width="40" height="40" rx="4" fill="#78909C"/>
+                  <!-- "X" 符号 -->
+                  <line x1="34" y1="34" x2="50" y2="50" stroke="white" stroke-width="3" stroke-linecap="round"/>
+                  <line x1="50" y1="34" x2="34" y2="50" stroke="white" stroke-width="3" stroke-linecap="round"/>
+                </svg>
+              </button>
             </div>
             <div v-for="tab in urlTabs" :key="tab.id" class="result-item">
               <div class="result-content">
                 <input type="checkbox" class="select-checkbox" v-if="showBatchSelect" v-model="tab.checked"/>
                 <img :src="tab.favicon" class="result-icon" alt="">
-                <div class="result-info"  @click="handleResultClick(tab)">
+                <div class="result-info" @click="handleResultClick(tab)">
                   <div class="result-title">{{ tab.title || '无标题' }}</div>
                   <div class="result-url">{{ tab.url }}</div>
                 </div>
@@ -445,7 +495,8 @@ const groupedTabs = computed(() => {
                     @click="closeTab(tab)"
                 >
                   <svg viewBox="0 0 24 24" width="16" height="16">
-                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                    <path
+                        d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
                   </svg>
                 </button>
               </div>
@@ -453,7 +504,7 @@ const groupedTabs = computed(() => {
           </div>
         </div>
       </div>
-   <div v-for="(arr, key) in groupedResults" class="search-box" v-if="showResults">
+      <div v-for="(arr, key) in groupedResults" class="search-box" v-if="showResults">
         <div id="searchStats" class="search-stats"></div>
         <div class="group-container">
           <div class="group-header">
@@ -474,7 +525,8 @@ const groupedTabs = computed(() => {
                 v-if="item.type === 'tab'"
             >
               <svg viewBox="0 0 24 24" width="16" height="16">
-                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                <path
+                    d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
               </svg>
             </button>
           </div>
@@ -495,6 +547,7 @@ body {
   background: #f5f5f5;
   /*min-width: 600px;*/
 }
+
 /* 添加关闭按钮样式 */
 .close-tab-btn {
   display: flex;
@@ -512,6 +565,11 @@ body {
 
 .close-tab-btn:hover {
   background-color: rgba(0, 0, 0, 0.05);
+}
+
+.tab-stats{
+  color:#6e6e6e;
+  font-size: 0.9em;
 }
 
 .close-tab-btn svg {
@@ -553,17 +611,21 @@ body {
     transform: translateY(-10px);
   }
 }
-.select-checkbox{
+
+.select-checkbox {
   margin-right: 10px;
 }
-.batch-actions{
+
+.batch-actions {
   display: flex;
   column-gap: 10px;
   align-items: center;
 }
 
-.batch-select-container{
+.batch-select-container {
   display: flex;
+  align-items: center;
+  column-gap: 10px;
 }
 
 
@@ -571,7 +633,7 @@ body {
   margin: 0 auto;
 }
 
-.search-wrapper{
+.search-wrapper {
   margin-bottom: 10px;
   display: flex;
   position: relative;
@@ -607,7 +669,7 @@ body {
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  height: 80vh;
+  height: 82vh;
   overflow-y: auto;
   display: flex;
   /*height: 0;
@@ -636,7 +698,7 @@ body {
   column-gap: 10px;
 }
 
-.group-header span{
+.group-header span {
   flex-shrink: 0;
 }
 
@@ -916,9 +978,9 @@ body {
   font-size: 14px;
   color: #3c4043;
   flex-shrink: 0;
-/*  //overflow: hidden;
-  //text-overflow: ellipsis;
-  //white-space: nowrap;*/
+  /*  //overflow: hidden;
+    //text-overflow: ellipsis;
+    //white-space: nowrap;*/
 }
 
 .action-btn:hover {
@@ -1016,6 +1078,22 @@ body {
   padding: 4px 16px;
   font-size: 14px;
   color: #5f6368;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.url-header-close {
+  border-radius: 2px;
+  border: none;
+  background: transparent;
+  color: #5f6368;
+}
+
+.url-header-close:hover {
+  color: #c82333;
+  cursor: pointer;
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
 .result-item {
