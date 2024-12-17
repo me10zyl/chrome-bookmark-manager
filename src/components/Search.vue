@@ -441,7 +441,7 @@ const batchCloseSelectTabs = () => {
 <template>
   <div class="search-container">
     <div class="page-head">
-      <div>
+      <div class="page-head-left">
         <h1 class="page-title">全局搜索</h1>
         <button @click="search" class="reload-button">
           <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="#000000" height="16px" width="16px" viewBox="0 0 489.533 489.533" xml:space="preserve">
@@ -577,6 +577,11 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: #f5f5f5;
   /*min-width: 600px;*/
+}
+.page-head-left{
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
 }
 
 .tab-group-title{
