@@ -424,10 +424,21 @@ const batchCloseTabs = (tabs: Tab[] | Result[]) => {
 const batchCloseSelectTabs = () => {
   batchCloseTabs(searchResults.value.filter(e => e.type === 'tab' && e.checked))
 }
+
+
 </script>
 <template>
   <div class="search-container">
-    <h1 class="page-title">全局搜索</h1>
+    <div class="page-head">
+      <h1 class="page-title">全局搜索</h1>
+      <button @click="search" class="reload-button">
+        <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="#000000" height="16px" width="16px" viewBox="0 0 489.533 489.533" xml:space="preserve">
+<g>
+	<path d="M268.175,488.161c98.2-11,176.9-89.5,188.1-187.7c14.7-128.4-85.1-237.7-210.2-239.1v-57.6c0-3.2-4-4.9-6.7-2.9   l-118.6,87.1c-2,1.5-2,4.4,0,5.9l118.6,87.1c2.7,2,6.7,0.2,6.7-2.9v-57.5c87.9,1.4,158.3,76.2,152.3,165.6   c-5.1,76.9-67.8,139.3-144.7,144.2c-81.5,5.2-150.8-53-163.2-130c-2.3-14.3-14.8-24.7-29.2-24.7c-17.9,0-31.9,15.9-29.1,33.6   C49.575,418.961,150.875,501.261,268.175,488.161z"/>
+</g>
+</svg>
+      </button>
+    </div>
     <div class="search-wrapper">
       <input type="text" id="searchInput" placeholder="搜索标签页、书签、历史记录..." autofocus @input="debounceSearch"
              v-model="searchText" @blur="handleBlur" @focus="handleFocus">
@@ -546,6 +557,27 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: #f5f5f5;
   /*min-width: 600px;*/
+}
+.page-head{
+  display: flex;
+  align-items: baseline;
+  column-gap: 10px;
+}
+.reload-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+
+}
+
+
+
+.reload-button:hover svg {
+  fill: #01b4ff;
+  transition: fill 0.2s;
 }
 
 /* 添加关闭按钮样式 */

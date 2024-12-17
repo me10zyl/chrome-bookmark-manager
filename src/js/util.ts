@@ -8,6 +8,5 @@ export function groupBy(array, keyMapper) {
 
 export function extractDomain(url: string) {
     let regExpMatchArray = url.match(/^.+:\/\/([^/]+?)\//);
-    console.log(regExpMatchArray)
-    return regExpMatchArray[1];
+    return regExpMatchArray != null && regExpMatchArray.length > 1 ? regExpMatchArray[1] : 'unknown';
 }
