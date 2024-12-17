@@ -95,7 +95,7 @@ const search = async () => {
       getRecentHistory()
     ]);
     isLoading.value = false
-    searchResults.value.push(...[...recentTabs, ...recentBookmarks, ...recentHistory])
+    searchResults.value = [...recentTabs, ...recentBookmarks, ...recentHistory]
     showResults.value = true
   }
 
@@ -104,9 +104,7 @@ const search = async () => {
   function getRecentTabs() {
     return new Promise((resolve) => {
       chrome.tabs.query({}, (tabs: Tab[]) => {
-        console.log('recentTabs', tabs)
         let results1 = sortTab(tabs.map(mapTab));
-        console.log('results1', results1)
         resolve(results1);
       });
     });
@@ -198,7 +196,6 @@ const search = async () => {
         return b.lastAccessed - a.lastAccessed;
       });
     }
-    console.log('sortTabResults', tabResults)
     return tabResults
   }
 
@@ -334,16 +331,12 @@ const createBookmarkGroup = () => {
   // 首先确保有一个根文件夹
   ensureRootFolder('我的标签组', '1').then((rootFolder: BookmarkTreeNode) => {
     const selectedTabs: string[] = searchResults.value.filter(e => e.checked).map(e => e.id.toString())
-    console.log('selectTabs', selectedTabs)
     // 在根文件夹下创建新的书签组
     ensureRootFolder(`[TabGroup]${groupName}`,
         rootFolder.id
     ).then(function (folder) {
-      console.log('folder', folder)
       chrome.tabs.query({}, function (tabs) {
-        console.log('after tabs query', tabs)
         const selectedTabsInfo = tabs.filter(tab => selectedTabs.includes(tab.id.toString()));
-        console.log('selectedTabsInfo', selectedTabsInfo)
         Promise.all(selectedTabsInfo.map(tab => {
           return new Promise((resolve) => {
             chrome.bookmarks.create({
@@ -572,8 +565,6 @@ body {
   cursor: pointer;
 
 }
-
-
 
 .reload-button:hover svg {
   fill: #01b4ff;
