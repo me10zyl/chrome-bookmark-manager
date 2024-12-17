@@ -104,8 +104,9 @@ const search = async () => {
   function getRecentTabs() {
     return new Promise((resolve) => {
       chrome.tabs.query({}, (tabs: Tab[]) => {
-        let results1 = sortTab(tabs.map(mapTab));
-        resolve(results1);
+        sortTab(tabs.map(mapTab)).then(results1=>{
+          resolve(results1);
+        });
       });
     });
   }
@@ -190,11 +191,18 @@ const search = async () => {
   }
 
 
-  function sortTab(tabResults: Result[]) {
+  async function sortTab(tabResults: Result[]) {
     if (tabResults.length > 0) {
       tabResults.sort((a, b) => {
         return b.lastAccessed - a.lastAccessed;
       });
+      for (let tab of tabResults) {
+        if(tab.groupId > 0){
+          console.log(tab.groupId)
+          let tabGroup = await chrome.tabGroups.get(tab.groupId);
+          tab.groupTitle = tabGroup.title
+        }
+      }
     }
     return tabResults
   }
@@ -217,7 +225,7 @@ const search = async () => {
             tab.url.toLowerCase().includes(query)
         )
         .map(mapTab)
-    sortTab(tabResults)
+    await sortTab(tabResults)
     results.push(...tabResults)
 
     const historyResults = await new Promise((resolve) => {
@@ -357,6 +365,11 @@ const createBookmarkGroup = () => {
 // 关闭标签页
 const closeTab = async (tab) => {
   try {
+    if(tab.groupId > 0){
+      if(!confirm(`该标签页有分组（${tab.groupTitle}）确认删除？`)){
+        return
+      }
+    }
     await chrome.tabs.remove(tab.id)
     // 从搜索结果中移除已关闭的标签
     searchResults.value = searchResults.value.filter(result =>
@@ -397,6 +410,11 @@ const tabStats = computed(() => {
 })
 const batchCloseTabs = (tabs: Tab[] | Result[]) => {
   try {
+    if(tabs.some(e=>e.groupId > 0)){
+      if(!confirm(`该标签页有分组，确认删除？`)){
+        return
+      }
+    }
     tabs.forEach(e => {
       chrome.tabs.remove(e.id)
     })
@@ -490,6 +508,7 @@ const batchCloseSelectTabs = () => {
                   <div class="result-title">{{ tab.title || '无标题' }}</div>
                   <div class="result-url">{{ tab.url }}</div>
                 </div>
+                <span class="tab-group-title" v-if="tab.groupTitle">{{tab.groupTitle}}</span>
                 <span :class="['result-type','type-tab']">{{ typeLabels['tab'] }}</span>
               </div>
               <div class="result-actions">
@@ -550,6 +569,19 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: #f5f5f5;
   /*min-width: 600px;*/
+}
+
+.tab-group-title{
+  border-radius: 4px;
+  background: #f4f4f4;
+  border: none;
+  padding: 4px 8px;
+  flex-shrink: 0;
+  color: #5f6368;
+  max-width: 100px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .page-head{
   display: flex;
@@ -778,7 +810,6 @@ body {
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 12px;
-  margin-left: 8px;
   flex-shrink: 0;
 }
 
