@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import {onMounted, onUnmounted, ref} from 'vue'
+import {extractDomain} from "@/js/util";
+import Dropdown from "@/components/Dropdown.vue";
 import BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 import Tab = chrome.tabs.Tab;
 import TabGroup = chrome.tabGroups.TabGroup;
-import {extractDomain} from "@/js/util";
 
 const bookmarkGroups = ref<BookmarkTreeNode[]>([])
 const editingGroupId = ref(null)
@@ -219,13 +220,7 @@ onUnmounted(() => {
         <div class="group-title-wrapper">
           <div class="group-info" v-show="editingGroupId !== group.id">
             <span class="group-title">{{ group.displayTitle }}</span>
-            <div class="dropdown">
-              <button class="edit-group-btn" title="更多操作" @click="group.showDropdown = !group.showDropdown">
-                <svg viewBox="0 0 24 24" width="16" height="16">
-                  <path
-                      d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
-                </svg>
-              </button>
+            <Dropdown v-model="group.showDropdown">
               <div :class="{'dropdown-menu': true, show: group.showDropdown}">
                 <button class="dropdown-item"
                         @click="closeAllDropdowns(); editingGroupId = group.id">
@@ -243,7 +238,7 @@ onUnmounted(() => {
                   <span>删除</span>
                 </button>
               </div>
-            </div>
+            </Dropdown>
           </div>
           <div class="group-edit-form" v-show="editingGroupId === group.id">
             <input type="text"
@@ -511,37 +506,8 @@ body {
   }
 }
 
-.edit-group-btn {
-  background: transparent;
-  color: rgb(247, 241, 241);
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.2s;
-}
-
 /* 下拉菜单相关样式 */
-.dropdown {
-  position: relative;
-  display: inline-flex;
-  margin-left: 8px;
-  flex-shrink: 0;
-  align-items: center;
-}
 
-
-.group-title-container:hover .edit-group-btn {
-  opacity: 1;
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
-.edit-group-btn:hover {
-  opacity: 1;
-  background-color: rgba(0, 0, 0, 0.1);
-  transform: scale(1.05);
-}
 
 .edit-group-btn svg {
   fill: #444;
@@ -552,48 +518,6 @@ body {
 
 .edit-group-btn:hover svg {
   fill: #1a73e8;
-}
-
-.dropdown-menu {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  min-width: 180px;
-  padding: 8px 0;
-  margin-top: 4px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(-10px);
-  transition: all 0.2s ease;
-  z-index: 1000;
-}
-
-.dropdown-menu.show {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-  pointer-events: auto;
-}
-
-.dropdown-item {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  padding: 8px 16px;
-  border: none;
-  background: none;
-  color: #202124;
-  font-size: 14px;
-  text-align: left;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.dropdown-item:hover {
-  background-color: #f8f9fa;
 }
 
 .dropdown-item svg {
