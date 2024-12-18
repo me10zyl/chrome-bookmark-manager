@@ -1,7 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
-import Popup from './components/popup.vue'
-import Search from './components/Search.vue'
-import BookmarkGroups from "./components/BookmarkGroups.vue";
+import Popup from './views/Popup.vue'
+import Search from './views/Search.vue'
+import BookmarkGroups from "./views/BookmarkGroups.vue";
 
 const routes = [
   {

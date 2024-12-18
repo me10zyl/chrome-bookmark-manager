@@ -446,6 +446,7 @@ const closeAllGroups = ()=>{
       await chrome.tabs.remove(tabIds); // 关闭分组中的所有标签
     }
     console.log("All tab groups have been closed!");
+    alert('已关闭所有分组标签')
   })();
 }
 
