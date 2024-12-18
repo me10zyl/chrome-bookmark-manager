@@ -1,36 +1,12 @@
 <template>
-  <div class="dropdown">
-    <button class="edit-group-btn" title="更多操作" @click="show = !show">
-      <svg viewBox="0 0 24 24" width="16" height="16">
-        <path
-            d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
-      </svg>
-    </button>
-    <div :class="{'dropdown-menu': true, show: show}">
-      <slot>
-      </slot>
-    </div>
-  </div>
+  <button class="dropdown-item" >
+      <slot></slot>
+  </button>
 </template>
-<script setup lang="ts">
-import {onMounted, onUnmounted, ref} from "vue";
-
-const show = ref<boolean>();
-
-
-function handleDocumentClick(e) {
-  if (!e.target.closest('.dropdown')) {
-    show.value = false
-  }
+<script>
+export default {
+  name: 'DropdownItem'
 }
-
-onMounted(() => {
-  document.addEventListener('click', handleDocumentClick)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', handleDocumentClick)
-})
 </script>
 <style scoped>
 /* 保持原有的 CSS 样式不变 */
@@ -73,37 +49,8 @@ body {
   }
 }
 
-.edit-group-btn {
-  background: transparent;
-  color: rgb(247, 241, 241);
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.2s;
-}
-
 /* 下拉菜单相关样式 */
-.dropdown {
-  position: relative;
-  display: inline-flex;
-  margin-left: 8px;
-  flex-shrink: 0;
-  align-items: center;
-}
 
-
-.group-title-container:hover .edit-group-btn {
-  opacity: 1;
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
-.edit-group-btn:hover {
-  opacity: 1;
-  background-color: rgba(0, 0, 0, 0.1);
-  transform: scale(1.05);
-}
 
 .edit-group-btn svg {
   fill: #444;
@@ -152,6 +99,10 @@ body {
   text-align: left;
   cursor: pointer;
   transition: background-color 0.2s ease;
+}
+
+.dropdown-item:hover {
+  background-color: #f8f9fa;
 }
 
 .dropdown-item svg {

@@ -5,6 +5,8 @@ import {groupBy, extractDomain} from '@/js/util'
 import BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 import Tab = chrome.tabs.Tab;
 import HistoryItem = chrome.history.HistoryItem;
+import Dropdown from "@/components/Dropdown.vue";
+import DropdownItem from "@/components/DropdownItem.vue";
 
 interface Result {
   id: string,
@@ -435,7 +437,17 @@ const batchCloseTabs = (tabs: Tab[] | Result[]) => {
 const batchCloseSelectTabs = () => {
   batchCloseTabs(searchResults.value.filter(e => e.type === 'tab' && e.checked))
 }
-
+const closeAllGroups = ()=>{
+  (async () => {
+    const groups = await chrome.tabGroups.query({});
+    for (const group of groups) {
+      const tabs = await chrome.tabs.query({ groupId: group.id });
+      const tabIds = tabs.map(tab => tab.id);
+      await chrome.tabs.remove(tabIds); // 关闭分组中的所有标签
+    }
+    console.log("All tab groups have been closed!");
+  })();
+}
 
 </script>
 <template>
@@ -451,12 +463,11 @@ const batchCloseSelectTabs = () => {
   </svg>
         </button>
       </div>
-      <button class="more-actions" title="更多操作" @click="group.showDropdown = !group.showDropdown">
-        <svg viewBox="0 0 24 24" width="16" height="16">
-          <path
-              d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
-        </svg>
-      </button>
+      <Dropdown>
+        <Dropdown-item @click="closeAllGroups">
+            关闭所有的分组
+        </Dropdown-item>
+      </Dropdown>
     </div>
     <div class="search-wrapper">
       <input type="text" id="searchInput" placeholder="搜索标签页、书签、历史记录..." autofocus @input="debounceSearch"

@@ -5,6 +5,7 @@ import Dropdown from "@/components/Dropdown.vue";
 import BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 import Tab = chrome.tabs.Tab;
 import TabGroup = chrome.tabGroups.TabGroup;
+import DropdownItem from "@/components/DropdownItem.vue";
 
 const bookmarkGroups = ref<BookmarkTreeNode[]>([])
 const editingGroupId = ref(null)
@@ -188,26 +189,11 @@ const openAllBookmarks = async (bookmarks: BookmarkTreeNode[], group: BookmarkTr
   await chrome.windows.update(windowId, {focused: true})
 }
 
-const closeAllDropdowns = () => {
-  bookmarkGroups.value.forEach(group => {
-    group.showDropdown = false
-  })
-}
-
-const handleDocumentClick = (event) => {
-  if (!event.target.closest('.dropdown')) {
-    closeAllDropdowns()
-  }
-}
-
-
 onMounted(() => {
   fetchBookmarkGroups()
-  document.addEventListener('click', handleDocumentClick)
 })
 
 onUnmounted(() => {
-  document.removeEventListener('click', handleDocumentClick)
 })
 </script>
 
@@ -220,24 +206,22 @@ onUnmounted(() => {
         <div class="group-title-wrapper">
           <div class="group-info" v-show="editingGroupId !== group.id">
             <span class="group-title">{{ group.displayTitle }}</span>
-            <Dropdown v-model="group.showDropdown">
-              <div :class="{'dropdown-menu': true, show: group.showDropdown}">
-                <button class="dropdown-item"
-                        @click="closeAllDropdowns(); editingGroupId = group.id">
-                  <svg viewBox="0 0 24 24" width="16" height="16">
-                    <path
-                        d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-                  </svg>
-                  <span>重命名</span>
-                </button>
-                <button class="dropdown-item"
-                        @click="closeAllDropdowns(); deleteGroup(group.id)">
-                  <svg viewBox="0 0 24 24" width="16" height="16">
-                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-                  </svg>
-                  <span>删除</span>
-                </button>
-              </div>
+            <Dropdown>
+              <DropdownItem
+                      @click="editingGroupId = group.id">
+                <svg viewBox="0 0 24 24" width="16" height="16">
+                  <path
+                      d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                </svg>
+                <span>重命名</span>
+              </DropdownItem>
+              <DropdownItem
+                      @click="deleteGroup(group.id)">
+                <svg viewBox="0 0 24 24" width="16" height="16">
+                  <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                </svg>
+                <span>删除</span>
+              </DropdownItem>
             </Dropdown>
           </div>
           <div class="group-edit-form" v-show="editingGroupId === group.id">
