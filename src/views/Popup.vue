@@ -9,7 +9,7 @@
         <span class="icon">🔍</span>
         全局搜索
       </button>
-      <button id="openGroups" class="btn-secondary" @click="clickBtn('bookmarkGroups')">
+      <button id="openGroups" class="btn-secondary" @click="openSideBar('bookmarkGroups')">
         <span class="icon">📚</span>
         书签组管理
       </button>
@@ -118,6 +118,40 @@ button:hover {
 }
 </style>
 <script setup lang="ts">
+const openSideBar = async (id: string) => {
+  let url = `index.html#/${id}`;
+  let tabs = await chrome.tabs.query({
+    active: true
+  });
+  if(tabs.length > 0) {
+    console.log('tabs', tabs)
+    tabs.sort((a,b)=>{
+      return b.lastAccessed - a.lastAccessed
+    })
+    console.log('set sidebar opts')
+    console.log('activeTab', tabs[0])
+    let opts = await chrome.sidePanel.getOptions({
+      tabId: tabs[0].id
+    });
+    if(!opts.enabled) {
+      await chrome.sidePanel.setOptions({
+        path: url,
+        enabled: true,
+        tabId: tabs[0].id
+      })
+      await chrome.sidePanel.open({tabId: tabs[0].id})
+      console.log('open sidebar')
+    }else{
+      console.log('close sidebar')
+      await chrome.sidePanel.setOptions({
+        enabled: false,
+        tabId: tabs[0].id
+      })
+    }
+
+
+  }
+}
 const clickBtn = async (id: string) => {
   console.log('clickBtn')
   let tabs = await chrome.tabs.query({});

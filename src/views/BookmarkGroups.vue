@@ -423,6 +423,11 @@ body {
 .bookmarks-list {
   padding: 16px;
 }
+.bookmark-content{
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
 
 .bookmark-item {
   padding: 12px;
