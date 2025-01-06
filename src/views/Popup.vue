@@ -9,7 +9,7 @@
         <span class="icon">🔍</span>
         全局搜索
       </button>
-      <button id="openGroups" class="btn-secondary" @click="openSideBar('bookmarkGroups')">
+      <button id="openGroups" class="btn-secondary" @click="clickBtn('bookmarkGroups')">
         <span class="icon">📚</span>
         书签组管理
       </button>

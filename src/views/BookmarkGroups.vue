@@ -1,17 +1,18 @@
 <script setup lang="ts">
-import {onMounted, onUnmounted, ref} from 'vue'
+import {onMounted, onUnmounted, ref, warn} from 'vue'
 import {extractDomain} from "@/js/util";
 import Dropdown from "@/components/Dropdown.vue";
 import BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 import Tab = chrome.tabs.Tab;
 import TabGroup = chrome.tabGroups.TabGroup;
 import DropdownItem from "@/components/DropdownItem.vue";
+import * as groupHandle from "@/js/bookmarkGroup";
 
 const bookmarkGroups = ref<BookmarkTreeNode[]>([])
 const editingGroupId = ref(null)
 
 // 获取书签组
-const PREFIX = '[TabGroup]';
+
 const fetchBookmarkGroups = async () => {
   // const tree = await new Promise(resolve => {
   //   chrome.bookmarks.getTree(resolve)
@@ -31,46 +32,14 @@ const fetchBookmarkGroups = async () => {
   //
   // traverse(tree)
   // bookmarkGroups.value = groups
-  bookmarkGroups.value = await new Promise((r) => {
-    chrome.bookmarks.search({title: '我的标签组'}, function (results) {
-      if (results.length === 0) {
-        return;
-      }
-
-      chrome.bookmarks.getChildren(results[0].id, function (children) {
-        const bookmarkGroups = children.filter(child =>
-            child.title.startsWith(PREFIX)
-        ).map(group => {
-          group.displayTitle = group.title.replace(PREFIX, '');
-          return group;
-        });
-
-        Promise.all(bookmarkGroups.map(group =>
-            new Promise(resolve => {
-              chrome.bookmarks.getChildren(group.id, children => {
-                group.children = children;
-                resolve(group);
-              });
-            })
-        )).then(groups => {
-          r(groups)
-        });
-      });
-    });
-  })
+  bookmarkGroups.value = await groupHandle.fetchBookmarkGroups()
 }
 
 // 更新组名
 const updateGroupName = async (groupId, newTitle) => {
-  try {
-    newTitle = PREFIX + newTitle;
-    await chrome.bookmarks.update(String(groupId), {title: newTitle})
-    editingGroupId.value = null
-    await fetchBookmarkGroups()
-  } catch (error) {
-    console.error('更新书签组名称失败:', error)
-    alert('更新失败，请重试')
-  }
+  await groupHandle.updateGroupName(groupId, newTitle);
+  editingGroupId.value = null
+  await fetchBookmarkGroups()
 }
 
 // 删除书签组
