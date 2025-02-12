@@ -324,7 +324,10 @@ const createBookmarkGroup = () => {
   const groupName = prompt('请输入书签组名称：');
   if (!groupName) return;
   const selectedTabs: string[] = searchResults.value.filter(e => e.checked).map(e => e.id.toString())
-  addToGroup(groupName, selectedTabs);
+  addToGroup(groupName, selectedTabs, ()=>{
+    alert('书签组创建成功！');
+    document.getElementById('cancelBtn').click();
+  });
 }
 
 // 关闭标签页

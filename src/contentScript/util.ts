@@ -1,8 +1,8 @@
 export default {
-    addCss: (css: string) => {
+    addCss: (css: string, id: string = 'cbm-content-script-css') => {
         document.getElementById('cbm-content-script-css')?.remove();
         const style = document.createElement('style');
-        style.id = 'cbm-content-script-css';
+        style.id = id;
         style.innerHTML = css;
         document.head.appendChild(style);
     }

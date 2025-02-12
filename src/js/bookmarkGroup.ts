@@ -2,7 +2,7 @@ import BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 
 const PREFIX = '[TabGroup]';
 
-export function addToGroup(groupName: string, selectedTabs:string[]) {
+export function addToGroup(groupName: string, selectedTabs:string[], successCallback?:()=>{}) {
     // 确保根文件夹存在
     function ensureRootFolder(title: string, parentId: string): Promise<BookmarkTreeNode> {
         return new Promise((resolve) => {
@@ -38,8 +38,9 @@ export function addToGroup(groupName: string, selectedTabs:string[]) {
                         }, resolve);
                     });
                 })).then(() => {
-                    alert('书签组创建成功！');
-                    document.getElementById('cancelBtn').click();
+                    if(successCallback){
+                        successCallback()
+                    }
                 });
             });
         });
@@ -48,6 +49,7 @@ export function addToGroup(groupName: string, selectedTabs:string[]) {
 
 export const removeFromBookmarkGroup = async (url: string) => {
     try {
+        console.log('removeFromBookmarkGroup')
         const bookmarkGroups = await fetchBookmarkGroups();
         const bookmarkGroup = bookmarkGroups.find(group =>
             group.children.some(child => child.url === url)
@@ -56,10 +58,10 @@ export const removeFromBookmarkGroup = async (url: string) => {
         if (bookmarkGroup) {
             const bookmark = bookmarkGroup.children.find(child => child.url === url);
             await chrome.bookmarks.remove(String(bookmark.id));
+            console.log('从书签组中移除成功:', bookmark);
         }
     } catch (error) {
         console.error('从书签组中移除失败:', error);
-        alert('从书签组中移除失败，请重试')
     }
 }
 

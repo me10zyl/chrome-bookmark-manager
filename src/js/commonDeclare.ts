@@ -17,7 +17,7 @@ export interface BookmarkData {
 
 export interface AddBookMark {
     bookmarkGroupName: string,
-    tabId: string
+    tabId: number
 }
 
 export interface RemoveBookMark {

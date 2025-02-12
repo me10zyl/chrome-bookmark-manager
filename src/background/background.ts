@@ -36,7 +36,7 @@ function getBookmarkGroupName(bookmarkGroups: chrome.bookmarks.BookmarkTreeNode[
 chrome.runtime.onInstalled.addListener(async () => {
     console.log('onInstalled')
     chrome.contextMenus.create({
-        id: "addToBookmarkGroup",
+        id: "showDialog",
         title: "添加/移除到书签组",
         contexts: ["page"]
     });
@@ -47,23 +47,24 @@ chrome.runtime.onInstalled.addListener(async () => {
             let tab = await chrome.tabs.get(data.tabId)
             if(tab) {
                 removeFromBookmarkGroup(tab.url)
-                sendResponse({ action: request.action, message: "Removed" } as MessageRequest);
+                sendResponse({ action: request.action, message: "Removed", data: 'remove' } as MessageRequest);
             }else{
-                sendResponse({ action: request.action, message: "Tab do not exist" } as MessageRequest);
+                sendResponse({ action: request.action, message: "Tab do not exist" , data: 'remove' } as MessageRequest);
             }
         }else if(request.action === 'addToBookmarkGroup'){
             const data = request.data as AddBookMark;
-            addToGroup(data.bookmarkGroupName, [data.tabId])
+            addToGroup(data.bookmarkGroupName, [data.tabId.toString()])
             sendResponse({
                 action: request.action,
-                data: 'ok'
+                data: 'ok',
+                message: "已成功添加到" + data.bookmarkGroupName
             } as MessageRequest)
         }
     });
 
     const tabs = [];
 
-    chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
+    chrome.tabs.onUpdated.addListener((tabId, removeInfo) => {
         const index = tabs.indexOf(tabId);
         if (index !== -1) {
             tabs.splice(index, 1);
@@ -87,7 +88,7 @@ chrome.runtime.onInstalled.addListener(async () => {
     }
 
     chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-        if (info.menuItemId === "addToBookmarkGroup") {
+        if (info.menuItemId === "showDialog") {
             await executeScript(tab);
             let bookmarkGroups = await fetchBookmarkGroups();
             let [bookmarkGroupName, bookmarkGroupId] = getBookmarkGroupName(bookmarkGroups, tab.url);
