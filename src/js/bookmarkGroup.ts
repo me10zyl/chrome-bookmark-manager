@@ -1,7 +1,26 @@
 import BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 
 const PREFIX = '[TabGroup]';
-
+export const clickBtn = async (id: string) => {
+    console.log('clickBtn')
+    let tabs = await chrome.tabs.query({});
+    let url = `index.html#/${id}`;
+    let existsTabs = tabs.filter(e=>e.url === chrome.runtime.getURL(url));
+    if(existsTabs.length > 0){
+        console.log('activeTab', existsTabs[0].id)
+        await chrome.windows.update(existsTabs[0].windowId, {
+            focused: true
+        })
+        await chrome.tabs.update(existsTabs[0].id, {
+            active: true
+        })
+    }else {
+        await chrome.tabs.create({
+            url: url,
+            active: true
+        })
+    }
+}
 export function addToGroup(groupName: string, selectedTabs:string[], successCallback?:()=>{}) {
     // 确保根文件夹存在
     function ensureRootFolder(title: string, parentId: string): Promise<BookmarkTreeNode> {

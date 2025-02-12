@@ -11,7 +11,8 @@
     "tabGroups",
     "sidePanel",
     "contextMenus",
-    "scripting"
+    "scripting",
+    "commands"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -27,7 +28,15 @@
       "128": "images/icon128.png"
     }
   },
-
+  "commands": {
+    "open-search": {
+      "suggested_key": {
+        "default": "Ctrl+U",
+        "mac": "Command+U"
+      },
+      "description": "打开全局搜索"
+    }
+  },
   "icons": {
     "16": "images/icon16.png",
     "48": "images/icon48.png",

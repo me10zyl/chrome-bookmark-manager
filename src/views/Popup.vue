@@ -118,6 +118,8 @@ button:hover {
 }
 </style>
 <script setup lang="ts">
+import {clickBtn} from "@/js/bookmarkGroup";
+
 const openSideBar = async (id: string) => {
   let url = `index.html#/${id}`;
   let tabs = await chrome.tabs.query({
@@ -152,24 +154,5 @@ const openSideBar = async (id: string) => {
 
   }
 }
-const clickBtn = async (id: string) => {
-  console.log('clickBtn')
-  let tabs = await chrome.tabs.query({});
-  let url = `index.html#/${id}`;
-  let existsTabs = tabs.filter(e=>e.url === chrome.runtime.getURL(url));
-  if(existsTabs.length > 0){
-    console.log('activeTab', existsTabs[0].id)
-    await chrome.windows.update(existsTabs[0].windowId, {
-      focused: true
-    })
-    await chrome.tabs.update(existsTabs[0].id, {
-      active: true
-    })
-  }else {
-    await chrome.tabs.create({
-      url: url,
-      active: true
-    })
-  }
-}
+
 </script>

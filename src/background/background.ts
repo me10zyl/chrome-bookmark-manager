@@ -1,4 +1,4 @@
-import {addToGroup, fetchBookmarkGroups, removeFromBookmarkGroup} from '../js/bookmarkGroup'
+import {addToGroup, clickBtn, fetchBookmarkGroups, removeFromBookmarkGroup} from '../js/bookmarkGroup'
 import {AddBookMark, BookmarkData, MessageRequest,  RemoveBookMark} from "../js/commonDeclare";
 
 console.log('background.js running...')
@@ -105,4 +105,19 @@ chrome.runtime.onInstalled.addListener(async () => {
             })
         }
     });
+
+
+    // 在你的脚本中添加以下代码
+    chrome.commands.onCommand.addListener((command) => {
+        if (command === 'open-search') {
+            // 触发全局搜索的逻辑
+            clickBtn('search');
+        }
+    });
+    chrome.tabs.onActivated.addListener(async (activeInfo) => {
+        const tab = await chrome.tabs.get(activeInfo.tabId);
+        if(chrome.runtime.getURL('index.html#/search') === tab.url){
+            chrome.tabs.sendMessage(tab.id, { action: 'updateSearchResults' });
+        }
+    })
 });

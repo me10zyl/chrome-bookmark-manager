@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, ref} from 'vue'
+import {computed, ref, onMounted} from 'vue'
 import {useRouter} from 'vue-router'
 import {groupBy, extractDomain} from '@/js/util'
 import BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
@@ -34,6 +34,7 @@ const searchText = ref('')
 const searchResults = ref<Result[]>([])
 const isLoading = ref(false)
 const showResults = ref(false)
+const lastUpdated = ref('')
 
 
 // 搜索配置
@@ -100,6 +101,7 @@ const search = async () => {
     isLoading.value = false
     searchResults.value = [...recentTabs, ...recentBookmarks, ...recentHistory]
     showResults.value = true
+    lastUpdated.value = new Date().toLocaleString()
   }
 
 
@@ -243,6 +245,7 @@ const search = async () => {
 
     searchResults.value = results
     showResults.value = true
+    lastUpdated.value = new Date().toLocaleString()
   } catch (error) {
     console.error('搜索失败:', error)
   } finally {
@@ -295,7 +298,7 @@ const handleFocus = () => {
 const init = () => {
   search()
 }
-init()
+
 
 const showBatchSelect = ref<boolean>(false)
 const batchSelect = () => {
@@ -416,6 +419,19 @@ const closeAllGroups = ()=>{
   })();
 }
 
+// 监听来自 background.js 的消息
+const handleMessage = (message) => {
+  if (message.action === 'updateSearchResults') {
+    search();
+  }
+}
+init()
+// 注册消息监听器
+onMounted(() => {
+  chrome.runtime.onMessage.addListener(handleMessage);
+  // search(); // 初始加载搜索结果
+});
+
 </script>
 <template>
   <div class="search-container">
@@ -429,6 +445,9 @@ const closeAllGroups = ()=>{
   </g>
   </svg>
         </button>
+        <div class="last-updated">
+      最后更新时间: {{ lastUpdated }}
+    </div>
       </div>
       <Dropdown>
         <Dropdown-item @click="closeAllGroups">
@@ -1222,5 +1241,11 @@ body {
 
 .close-tab-btn:hover svg {
   fill: #d93025;
+}
+
+.last-updated {
+  font-size: 12px;
+  color: #5f6368;
+  margin-bottom: 8px;
 }
 </style>
