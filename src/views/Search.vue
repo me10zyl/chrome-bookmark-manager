@@ -432,6 +432,18 @@ onMounted(() => {
   // search(); // 初始加载搜索结果
 });
 
+// 格式化时间差
+const formatTimeAgo = (timestamp) => {
+  if (!timestamp) return '未知时间';
+  const now = Date.now();
+  const seconds = Math.floor((now - timestamp) / 1000);
+  
+  if (seconds < 60) return `${seconds} 秒前`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} 分钟前`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)} 小时前`;
+  return `${Math.floor(seconds / 86400)} 天前`;
+}
+
 </script>
 <template>
   <div class="search-container">
@@ -512,6 +524,7 @@ onMounted(() => {
                 <div class="result-info" @click="handleResultClick(tab)">
                   <div class="result-title">{{ tab.title || '无标题' }}</div>
                   <div class="result-url">{{ tab.url }}</div>
+                  <div class="result-time">{{ formatTimeAgo(tab.lastAccessed) }}</div>
                 </div>
                 <span class="tab-group-title" v-if="tab.groupTitle">{{tab.groupTitle}}</span>
                 <span :class="['result-type','type-tab']">{{ typeLabels['tab'] }}</span>
@@ -544,6 +557,7 @@ onMounted(() => {
             <div class="result-info" @click="handleResultClick(item)">
               <div class="result-title">{{ item.title }}</div>
               <div class="result-url">{{ item.url }}</div>
+              <div class="result-time">{{ formatTimeAgo(item.lastAccessed) }}</div>
             </div>
             <span :class="['result-type','type-' + item.type]">{{ typeLabels[item.type] }}</span>
             <button
@@ -1247,5 +1261,10 @@ body {
   font-size: 12px;
   color: #5f6368;
   margin-bottom: 8px;
+}
+
+.result-time {
+  font-size: 12px;
+  color: #5f6368;
 }
 </style>

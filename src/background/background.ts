@@ -108,10 +108,11 @@ chrome.runtime.onInstalled.addListener(async () => {
 
 
     // 在你的脚本中添加以下代码
-    chrome.commands.onCommand.addListener((command) => {
+    chrome.commands.onCommand.addListener(async (command) => {
         if (command === 'open-search') {
             // 触发全局搜索的逻辑
-            clickBtn('search');
+            let tab = await clickBtn('search');
+            chrome.tabs.sendMessage(tab.id, { action: 'updateSearchResults' });
         }
     });
     chrome.tabs.onActivated.addListener(async (activeInfo) => {

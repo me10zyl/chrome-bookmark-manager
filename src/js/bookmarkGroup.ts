@@ -14,8 +14,9 @@ export const clickBtn = async (id: string) => {
         await chrome.tabs.update(existsTabs[0].id, {
             active: true
         })
+        return existsTabs[0]
     }else {
-        await chrome.tabs.create({
+        return await chrome.tabs.create({
             url: url,
             active: true
         })
