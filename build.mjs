@@ -1,6 +1,7 @@
 import {build, defineConfig} from 'vite';
 import * as config from './vite.config.js'
 import vue from "@vitejs/plugin-vue";
+import react from '@vitejs/plugin-react'
 import { access, rm, mkdir,rename } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
@@ -14,7 +15,7 @@ const distPath = resolve(__dirname, DistDirname);
 
 const entryPoints = [
     { inputName: 'background', inputPath: resolve(srcPath, 'background/background.ts') },
-    { inputName: 'contentScript', inputPath: resolve(srcPath, 'contentScript/contentScript.ts') },
+    { inputName: 'contentScript', inputPath: resolve(srcPath, 'contentScript/index.html') },
     { inputName: 'popup', inputPath: resolve('index.html')},
 ];
 
@@ -39,7 +40,7 @@ function getConfig(inputName, inputPath) {
                 }
             }
         },
-        plugins: [],
+        plugins: [react()],
         resolve:
             {
                 alias: {

@@ -1,5 +1,5 @@
-import {fetchBookmarkGroups} from '../js/bookmarkGroup'
-import {MessageRequest} from "../js/commonDeclare";
+import {addToGroup, fetchBookmarkGroups, removeFromBookmarkGroup} from '../js/bookmarkGroup'
+import {AddBookMark, BookmarkData, MessageRequest,  RemoveBookMark} from "../js/commonDeclare";
 
 console.log('background.js running...')
 
@@ -21,63 +21,86 @@ const sendTabMessage = (message: MessageRequest)=>{
     })
 }
 
+function getBookmarkGroupName(bookmarkGroups: chrome.bookmarks.BookmarkTreeNode[], tabUrl): string[] {
+    let bookmarkGroup = bookmarkGroups.find((bookmarkGroup) => {
+        return bookmarkGroup.children?.find((bookmark) => {
+            return bookmark.url === tabUrl
+        })
+    })
+    if(bookmarkGroup){
+        return [bookmarkGroup.title, bookmarkGroup.id]
+    }
+    return [null, null]
+}
+
 chrome.runtime.onInstalled.addListener(async () => {
     console.log('onInstalled')
     chrome.contextMenus.create({
         id: "addToBookmarkGroup",
-        title: "添加到书签组",
+        title: "添加/移除到书签组",
         contexts: ["page"]
     });
-
-    chrome.contextMenus.create({
-        id: "removeFromBookmarkGroup",
-        title: "从书签组移除",
-        contexts: ["page"]
-    });
-
     chrome.runtime.onMessage.addListener(async (request: MessageRequest, sender, sendResponse) => {
         console.log("收到来自 content script 的消息:", request);
         if(request.action === 'removeFromBookmarkGroup'){
-            let tabs = await chrome.tabs.query({
-                active: true,
-                currentWindow: true
-            });
-            if(tabs.length > 0){
-                sendResponse({
-                    action: request.action,
-                    data: chrome.bookmarks.search({url: tabs[0].url})
-                } as MessageRequest)
+            let data = request.data as RemoveBookMark;
+            let tab = await chrome.tabs.get(data.tabId)
+            if(tab) {
+                removeFromBookmarkGroup(tab.url)
+                sendResponse({ action: request.action, message: "Removed" } as MessageRequest);
+            }else{
+                sendResponse({ action: request.action, message: "Tab do not exist" } as MessageRequest);
             }
+        }else if(request.action === 'addToBookmarkGroup'){
+            const data = request.data as AddBookMark;
+            addToGroup(data.bookmarkGroupName, [data.tabId])
+            sendResponse({
+                action: request.action,
+                data: 'ok'
+            } as MessageRequest)
         }
-        sendResponse({ message: "Hello from background" });
+    });
+
+    const tabs = [];
+
+    chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
+        const index = tabs.indexOf(tabId);
+        if (index !== -1) {
+            tabs.splice(index, 1);
+            console.log(`Tab with id ${tabId} removed from tabs array.`);
+        }
     });
 
     async function executeScript(tab: chrome.tabs.Tab) {
         //@ts-ignore
-        await chrome.scripting.executeScript({
+        console.log('checking tab')
+        if(tabs.includes(tab.id)){
+            console.log('tab already exists', tab)
+            return
+        }
+        let value = await chrome.scripting.executeScript({
             target: {tabId: tab.id},
             files: ["contentScript.bundle.js"]
         });
+        console.log('execute script', tab, value)
+        tabs.push(tab.id)
     }
 
     chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         if (info.menuItemId === "addToBookmarkGroup") {
             await executeScript(tab);
+            let bookmarkGroups = await fetchBookmarkGroups();
+            let [bookmarkGroupName, bookmarkGroupId] = getBookmarkGroupName(bookmarkGroups, tab.url);
             await sendTabMessage({
-                action: 'addToBookmarkGroup',
+                action: 'showDialog',
                 data: {
-                    bookmarkGroups: fetchBookmarkGroups(),
-                    tabUrl: tab.url
-                }
-            })
-        } else if (info.menuItemId === "removeFromBookmarkGroup") {
-            await executeScript(tab);
-            await sendTabMessage({
-                action: 'removeFromBookmarkGroup',
-                data: {
-                    bookmarkGroups: fetchBookmarkGroups(),
-                    tabUrl: tab.url
-                }
+                    bookmarkGroups: bookmarkGroups,
+                    tabUrl: tab.url,
+                    tabId: tab.id,
+                    addOrRemove: bookmarkGroupName ? 'remove' : 'add',
+                    bookmarkGroupName: bookmarkGroupName,
+                    bookmarkGroupId: bookmarkGroupId
+                } as BookmarkData
             })
         }
     });

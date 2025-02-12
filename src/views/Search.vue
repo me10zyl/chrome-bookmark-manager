@@ -7,6 +7,7 @@ import Tab = chrome.tabs.Tab;
 import HistoryItem = chrome.history.HistoryItem;
 import Dropdown from "@/components/Dropdown.vue";
 import DropdownItem from "@/components/DropdownItem.vue";
+import {addToGroup} from "@/js/bookmarkGroup";
 
 interface Result {
   id: string,
@@ -310,6 +311,9 @@ const selectAll = () => {
     }
   }
 }
+
+
+
 const createBookmarkGroup = () => {
 
   if (batchSelectCount.value === 0) {
@@ -319,49 +323,8 @@ const createBookmarkGroup = () => {
 
   const groupName = prompt('请输入书签组名称：');
   if (!groupName) return;
-
-  // 确保根文件夹存在
-  function ensureRootFolder(title: string, parentId: string): Promise<BookmarkTreeNode> {
-    return new Promise((resolve) => {
-      chrome.bookmarks.search({title: title}, function (results) {
-        if (results.length > 0) {
-          // 如果找到了根文件夹，直接返回
-          resolve(results[0]);
-        } else {
-          // 如果没找到，创建一个新的根文件夹
-          chrome.bookmarks.create({
-            title: title,
-            parentId: parentId  // 在书签栏中创建
-          }, resolve);
-        }
-      });
-    });
-  }
-
-  // 首先确保有一个根文件夹
-  ensureRootFolder('我的标签组', '1').then((rootFolder: BookmarkTreeNode) => {
-    const selectedTabs: string[] = searchResults.value.filter(e => e.checked).map(e => e.id.toString())
-    // 在根文件夹下创建新的书签组
-    ensureRootFolder(`[TabGroup]${groupName}`,
-        rootFolder.id
-    ).then(function (folder) {
-      chrome.tabs.query({}, function (tabs) {
-        const selectedTabsInfo = tabs.filter(tab => selectedTabs.includes(tab.id.toString()));
-        Promise.all(selectedTabsInfo.map(tab => {
-          return new Promise((resolve) => {
-            chrome.bookmarks.create({
-              parentId: folder.id,
-              title: tab.title,
-              url: tab.url
-            }, resolve);
-          });
-        })).then(() => {
-          alert('书签组创建成功！');
-          document.getElementById('cancelBtn').click();
-        });
-      });
-    });
-  });
+  const selectedTabs: string[] = searchResults.value.filter(e => e.checked).map(e => e.id.toString())
+  addToGroup(groupName, selectedTabs);
 }
 
 // 关闭标签页

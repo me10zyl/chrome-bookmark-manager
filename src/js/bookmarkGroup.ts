@@ -2,6 +2,50 @@ import BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 
 const PREFIX = '[TabGroup]';
 
+export function addToGroup(groupName: string, selectedTabs:string[]) {
+    // 确保根文件夹存在
+    function ensureRootFolder(title: string, parentId: string): Promise<BookmarkTreeNode> {
+        return new Promise((resolve) => {
+            chrome.bookmarks.search({title: title}, function (results) {
+                if (results.length > 0) {
+                    // 如果找到了根文件夹，直接返回
+                    resolve(results[0]);
+                } else {
+                    // 如果没找到，创建一个新的根文件夹
+                    chrome.bookmarks.create({
+                        title: title,
+                        parentId: parentId  // 在书签栏中创建
+                    }, resolve);
+                }
+            });
+        });
+    }
+
+    // 首先确保有一个根文件夹
+    ensureRootFolder('我的标签组', '1').then((rootFolder: BookmarkTreeNode) => {
+        // 在根文件夹下创建新的书签组
+        ensureRootFolder(`[TabGroup]${groupName}`,
+            rootFolder.id
+        ).then(function (folder) {
+            chrome.tabs.query({}, function (tabs) {
+                const selectedTabsInfo = tabs.filter(tab => selectedTabs.includes(tab.id.toString()));
+                Promise.all(selectedTabsInfo.map(tab => {
+                    return new Promise((resolve) => {
+                        chrome.bookmarks.create({
+                            parentId: folder.id,
+                            title: tab.title,
+                            url: tab.url
+                        }, resolve);
+                    });
+                })).then(() => {
+                    alert('书签组创建成功！');
+                    document.getElementById('cancelBtn').click();
+                });
+            });
+        });
+    });
+}
+
 export const removeFromBookmarkGroup = async (url: string) => {
     try {
         const bookmarkGroups = await fetchBookmarkGroups();
