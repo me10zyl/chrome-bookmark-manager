@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import {computed, ref, onMounted} from 'vue'
+import {computed, onMounted, ref} from 'vue'
 import {useRouter} from 'vue-router'
-import {groupBy, extractDomain} from '@/js/util'
-import BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
-import Tab = chrome.tabs.Tab;
-import HistoryItem = chrome.history.HistoryItem;
+import {extractDomain, groupBy} from '@/js/util'
 import Dropdown from "@/components/Dropdown.vue";
 import DropdownItem from "@/components/DropdownItem.vue";
 import {addToGroup} from "@/js/bookmarkGroup";
+import Tab = chrome.tabs.Tab;
+import HistoryItem = chrome.history.HistoryItem;
+import {formatTimeAgo, typeLabels} from "../js/search";
+import SearchItem from "@/components/SearchItem.vue";
 
 interface Result {
   id: string,
@@ -23,12 +24,6 @@ interface Result {
   status?: string,
   origin?: Tab
 }
-
-const typeLabels = {
-  tab: '标签页',
-  bookmark: '书签',
-  history: '历史'
-};
 const router = useRouter()
 const searchText = ref('')
 const searchResults = ref<Result[]>([])
@@ -360,14 +355,11 @@ const closeTab = async (tab) => {
 const groupedTabs = computed(() => {
   const groups = {}
   searchResults.value.filter(e => e.type === 'tab').forEach(tab => {
-    if (!groups[tab.windowId]) {
-      groups[tab.windowId] = {}
-    }
     let extraUrl = extractDomain(tab.url);
-    if (!groups[tab.windowId][extraUrl]) {
-      groups[tab.windowId][extraUrl] = []
+    if (!groups[extraUrl]) {
+      groups[extraUrl] = []
     }
-    groups[tab.windowId][extraUrl].push(tab)
+    groups[extraUrl].push(tab)
   })
   console.log(groups)
   return groups
@@ -379,6 +371,7 @@ const tabStats = computed(() => {
     tabCount: tabCount
   }
 })
+
 const batchCloseTabs = (tabs: Tab[] | Result[]) => {
   try {
     if(tabs.some(e=>e.groupId > 0)){
@@ -402,7 +395,6 @@ const batchCloseTabs = (tabs: Tab[] | Result[]) => {
     alert('关闭失败，请重试')
   }
 }
-
 const batchCloseSelectTabs = () => {
   batchCloseTabs(searchResults.value.filter(e => e.type === 'tab' && e.checked))
 }
@@ -431,19 +423,6 @@ onMounted(() => {
   chrome.runtime.onMessage.addListener(handleMessage);
   // search(); // 初始加载搜索结果
 });
-
-// 格式化时间差
-const formatTimeAgo = (timestamp) => {
-  if (!timestamp) return '未知时间';
-  const now = Date.now();
-  const seconds = Math.floor((now - timestamp) / 1000);
-  
-  if (seconds < 60) return `${seconds} 秒前`;
-  if (seconds < 3600) return `${Math.floor(seconds / 60)} 分钟前`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)} 小时前`;
-  return `${Math.floor(seconds / 86400)} 天前`;
-}
-
 </script>
 <template>
   <div class="search-container">
@@ -491,59 +470,16 @@ const formatTimeAgo = (timestamp) => {
             </div>
           </div>
         </div>
-        <div v-for="(windowTabs, windowId) in groupedTabs" :key="windowId" class="window-group">
-          <div class="window-header">
-            <svg viewBox="0 0 24 24" width="16" height="16">
-              <path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14z"/>
-            </svg>
-            <span>窗口 {{ windowId }}</span>
-          </div>
-          <div v-for="(urlTabs, url) in windowTabs" :key="url" class="url-group">
-            <div class="url-header">
-              <span>{{ url }}</span>
-              <button class="url-header-close" @click="batchCloseTabs(urlTabs)">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="16" height="16">
-                  <!-- 背景矩形 -->
-                  <rect x="6" y="6" width="52" height="52" rx="6" fill="#E0E0E0"/>
-                  <!-- 第一层标签 -->
-                  <rect x="12" y="12" width="40" height="40" rx="4" fill="#B0BEC5"/>
-                  <!-- 第二层标签 -->
-                  <rect x="18" y="18" width="40" height="40" rx="4" fill="#90A4AE"/>
-                  <!-- 顶层标签 -->
-                  <rect x="24" y="24" width="40" height="40" rx="4" fill="#78909C"/>
-                  <!-- "X" 符号 -->
-                  <line x1="34" y1="34" x2="50" y2="50" stroke="white" stroke-width="3" stroke-linecap="round"/>
-                  <line x1="50" y1="34" x2="34" y2="50" stroke="white" stroke-width="3" stroke-linecap="round"/>
-                </svg>
-              </button>
-            </div>
-            <div v-for="tab in urlTabs" :key="tab.id" class="result-item">
-              <div class="result-content">
-                <input type="checkbox" class="select-checkbox" v-if="showBatchSelect" v-model="tab.checked"/>
-                <img :src="tab.favicon" class="result-icon" alt="">
-                <div class="result-info" @click="handleResultClick(tab)">
-                  <div class="result-title">{{ tab.title || '无标题' }}</div>
-                  <div class="result-url">{{ tab.url }}</div>
-                  <div class="result-time">{{ formatTimeAgo(tab.lastAccessed) }}</div>
-                </div>
-                <span class="tab-group-title" v-if="tab.groupTitle">{{tab.groupTitle}}</span>
-                <span :class="['result-type','type-tab']">{{ typeLabels['tab'] }}</span>
-              </div>
-              <div class="result-actions">
-                <button
-                    class="action-btn close-tab-btn"
-                    title="关闭标签页"
-                    @click="closeTab(tab)"
-                >
-                  <svg viewBox="0 0 24 24" width="16" height="16">
-                    <path
-                        d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <SearchItem :items="groupedTabs" @batch-close-tabs="batchCloseTabs" @close-tab="closeTab" @handle-result-click="handleResultClick"/>
+<!--        <div v-for="(windowTabs, windowId) in groupedTabs" :key="windowId" class="window-group">-->
+<!--          <div class="window-header">-->
+<!--            <svg viewBox="0 0 24 24" width="16" height="16">-->
+<!--              <path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14z"/>-->
+<!--            </svg>-->
+<!--            <span>窗口 {{ windowId }}</span>-->
+<!--          </div>-->
+<!--         -->
+<!--        </div>-->
       </div>
       <div v-for="(arr, key) in groupedResults" class="search-box" v-if="showResults">
         <div id="searchStats" class="search-stats"></div>
@@ -557,7 +493,6 @@ const formatTimeAgo = (timestamp) => {
             <div class="result-info" @click="handleResultClick(item)">
               <div class="result-title">{{ item.title }}</div>
               <div class="result-url">{{ item.url }}</div>
-              <div class="result-time">{{ formatTimeAgo(item.lastAccessed) }}</div>
             </div>
             <span :class="['result-type','type-' + item.type]">{{ typeLabels[item.type] }}</span>
             <button
@@ -595,18 +530,6 @@ body {
   align-items: baseline;
 }
 
-.tab-group-title{
-  border-radius: 4px;
-  background: #f4f4f4;
-  border: none;
-  padding: 4px 8px;
-  flex-shrink: 0;
-  color: #5f6368;
-  max-width: 100px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 .page-head{
   display: flex;
   align-items: baseline;
@@ -719,10 +642,6 @@ body {
     opacity: 0;
     transform: translateY(-10px);
   }
-}
-
-.select-checkbox {
-  margin-right: 10px;
 }
 
 .batch-actions {
@@ -865,11 +784,6 @@ body {
   border-radius: 4px;
   font-size: 12px;
   flex-shrink: 0;
-}
-
-.type-tab {
-  background: #e8f0fe;
-  color: #1a73e8;
 }
 
 .type-bookmark {
@@ -1063,19 +977,6 @@ body {
 }
 
 /* 添加新的样式 */
-.result-content {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-}
-
-.result-actions {
-  display: flex;
-  align-items: center;
-  position: relative;
-}
 
 .action-btn {
   padding: 5px 10px;
@@ -1177,33 +1078,6 @@ body {
   font-weight: bold;
 }
 
-.url-group {
-  margin-left: 16px;
-  margin-top: 8px;
-}
-
-.url-header {
-  padding: 4px 16px;
-  font-size: 14px;
-  color: #5f6368;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.url-header-close {
-  border-radius: 2px;
-  border: none;
-  background: transparent;
-  color: #5f6368;
-}
-
-.url-header-close:hover {
-  color: #c82333;
-  cursor: pointer;
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
 .result-item {
   display: flex;
   align-items: center;
@@ -1214,21 +1088,6 @@ body {
 
 .result-item:hover {
   background-color: #f8f9fa;
-}
-
-.result-content {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-  min-width: 0;
-}
-
-.result-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
 }
 
 .close-tab-btn {
