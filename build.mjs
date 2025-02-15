@@ -15,7 +15,7 @@ const distPath = resolve(__dirname, DistDirname);
 
 const entryPoints = [
     { inputName: 'background', inputPath: resolve(srcPath, 'background/background.ts') },
-    { inputName: 'contentScript', inputPath: resolve(srcPath, 'contentScript/index.html') },
+    { inputName: 'contentScript', inputPath: resolve(srcPath, 'contentScript/contentScript.tsx') },
     { inputName: 'popup', inputPath: resolve('index.html')},
 ];
 
@@ -57,7 +57,9 @@ async function start(){
         // whole before all builds
     } catch {} // I don't care about errors here
     for(const entryPoint of entryPoints){
-        await build(getConfig(entryPoint.inputName, entryPoint.inputPath));
+        let myConfig = getConfig(entryPoint.inputName, entryPoint.inputPath);
+        console.log('myConfig', myConfig.build.rollupOptions.input)
+        await build(myConfig);
     }
 }
 

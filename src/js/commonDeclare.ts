@@ -1,4 +1,4 @@
-export type Action =  'showDialog' | 'removeFromBookmarkGroup' | 'addToBookmarkGroup'
+export type Action =  'showDialog' | 'removeFromBookmarkGroup' | 'addToBookmarkGroup' | 'updateSearchResults'
 
 export interface MessageRequest {
     action: Action,

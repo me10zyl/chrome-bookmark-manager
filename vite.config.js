@@ -20,12 +20,12 @@ export default defineConfig({
     },
     build: {
         sourcemap: true,
-        outDir: 'dist2',
-        rollupOptions: {
-            input: {
-                main: 'index.html',  // 主入口文件
-            }
-        },
+        // outDir: 'dist',
+        // rollupOptions: {
+        //     input: {
+        //         main: 'index.html',  // 主入口文件
+        //     }
+        // },
         resolve:
             {
                 alias: {
