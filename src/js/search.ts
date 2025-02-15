@@ -3,6 +3,8 @@
 import Tab = chrome.tabs.Tab;
 import BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 import HistoryItem = chrome.history.HistoryItem;
+import {ref} from "vue";
+import {useCallback, useEffect, useRef} from "react";
 
 export interface Result {
     id: number|string|undefined,
@@ -59,6 +61,8 @@ export const typeLabels = {
     history: '历史'
 };
 
+
+
 export const search = async ({
     searchText,
     setSearchResults,
@@ -73,7 +77,7 @@ export const search = async ({
     setLastUpdated: (lastUpdated: string) => void
 }) => {
 
-    console.log('开始搜索')
+    console.log('开始搜索:', searchText)
     setShowResults(false)
     setIsLoading(true)
     if (!searchText.trim()) {
@@ -275,4 +279,32 @@ export const search = async ({
    }
 
     await getSearchResults()
+}
+// 方案一：通用防抖 Hook
+export function useDebounce<T extends (...args: any[]) => void>(
+    callback: T,
+    delay: number
+): T {
+    const timeoutRef = useRef<number>(null);
+
+    // 清除定时器
+    useEffect(() => {
+        return () => {
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+            }
+        };
+    }, []);
+
+    return useCallback(
+        (...args: Parameters<T>) => {
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+            }
+            timeoutRef.current = setTimeout(() => {
+                callback(...args);
+            }, delay);
+        },
+        [callback, delay]
+    ) as T;
 }

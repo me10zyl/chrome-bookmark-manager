@@ -2,16 +2,18 @@ import Tab = chrome.tabs.Tab;
 import {useEffect, useMemo, useState} from "react";
 import {groupBy} from "../js/util";
 import styles from '../css/Search.module.css';
-import {search, SearchResults, typeLabels} from "../js/search";
+import {CONFIG, search, SearchResults, typeLabels, useDebounce} from "../js/search";
 import SearchItems from "./SearchItems";
 import BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 import HistoryItem = chrome.history.HistoryItem;
 import {MessageRequest} from "../js/commonDeclare";
+import {flushSync} from "react-dom";
 
 
 
-function SearchHead({onSearch, searchText}) {
+function SearchHead({doSearch, searchText, setSearchText}) {
     const [lastUpdated, setLastUpdated] = useState('')
+    // const debounceSearch = useDebounce(doSearch, CONFIG.debounceTime);
     const handleBlur = () => {
 
     }
@@ -19,12 +21,19 @@ function SearchHead({onSearch, searchText}) {
     const handleFocus = () => {
 
     }
+
+    const onChangeSearchText = (e) => {
+        // setSearchText(e.target.value)
+        // debounceSearch()
+    }
+    // debounceSearch()
+
     return (
         <>
             <div className={styles["page-head"]}>
                 <div className={styles["page-head-left"]}>
                     <h1 className={styles["page-title"]}>全局搜索</h1>
-                    <button onClick={onSearch} className={styles["reload-button"]}>
+                    <button onClick={doSearch} className={styles["reload-button"]}>
                         <svg xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink"
                              fill="#000000"
                              height="16px" width="16px" viewBox="0 0 489.533 489.533" xmlSpace="preserve">
@@ -46,7 +55,7 @@ function SearchHead({onSearch, searchText}) {
     </Dropdown>*/}
             <div className={styles["search-wrapper"]}>
                 <input type="text" id={styles.searchInput} placeholder="搜索标签页、书签、历史记录..." autoFocus
-                       onChange={onSearch}
+                       onChange={onChangeSearchText}
                        value={searchText} onBlur={handleBlur} onFocus={handleFocus}/>
                 <div className={styles["search-icon"]}>🔍</div>
             </div>
@@ -158,10 +167,10 @@ export default function Search() {
         }
     }
 
-    const init = async ()=>{
+    const init = ()=>{
         useEffect(()=>{
-            doSearch()
             chrome.runtime.onMessage.addListener(handleMessage);
+            doSearch()
             return () => {
                 chrome.runtime.onMessage.removeListener(handleMessage);
             };
@@ -175,7 +184,7 @@ export default function Search() {
 
     return (
         <div className={styles["search-container"]}>
-            <SearchHead onSearch={doSearch} searchText={searchText}></SearchHead>
+            <SearchHead doSearch={doSearch} searchText={searchText} setSearchText={setSearchText}></SearchHead>
             <div id="searchResults" className={styles["results-container"]}>
                 {isLoading && <div className={styles["loading"]}>加载中...</div>}
                 <SearchResult searchResult={searchResults.tab}></SearchResult>
