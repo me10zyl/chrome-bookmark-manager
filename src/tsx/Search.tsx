@@ -9,11 +9,12 @@ import HistoryItem = chrome.history.HistoryItem;
 import {MessageRequest} from "../js/commonDeclare";
 import {flushSync} from "react-dom";
 import {useImmer} from "use-immer";
+import {addToGroup} from "../js/bookmarkGroup";
 
 
 
-function SearchHead({doSearch, searchText, setSearchText}) {
-    const [lastUpdated, setLastUpdated] = useState('')
+function SearchHead({doSearch, searchText, setSearchText, lastUpdated}) {
+
 
     const handleBlur = () => {
 
@@ -64,19 +65,67 @@ function SearchHead({doSearch, searchText, setSearchText}) {
     )
 }
 
-function SearchResultHeader({searchResult,  showBatchSelect, setShowBatchSelect, batchSelectCount}) {
+function SearchResultHeader({searchResult,  showBatchSelect, setShowBatchSelect, setSearchResults}) {
     const resultType = searchResult.type;
     const clickBatchSelect = () => {
         setShowBatchSelect(!showBatchSelect)
+        setSearchResults(sr=>{
+            sr.tab.results.forEach(e => {
+                if (e.type === 'tab') {
+                    e.checked = false
+                }
+            })
+        })
     }
-
+    const batchSelectCount = useMemo(() => {
+        return searchResult.results.filter(e => e.type === 'tab' && e.checked).length
+    }, [searchResult])
+    const batchCloseTabs = (tabs: Tab[] | Result[]) => {
+        try {
+            if(tabs.some(e=>e.groupId > 0)){
+                if(!confirm(`该标签页有分组，确认删除？`)){
+                    return
+                }
+            }
+            tabs.forEach(e => {
+                chrome.tabs.remove(e.id)
+            })
+            // 从搜索结果中移除已关闭的标签
+            setSearchResults(sr=>{
+                sr.tab.results =  searchResult.results.filter(result =>
+                    !(result.type === 'tab' && tabs.map(e=>e.id).indexOf(result.id)!=-1)
+                )
+            })
+        } catch (error) {
+            console.error('关闭标签页失败:', error)
+            alert('关闭失败，请重试')
+        }
+    }
     const clickBatchCloseSelectTabs = ()=>{
-
+        batchCloseTabs(searchResult.results.filter(e => e.type === 'tab' && e.checked))
     }
     const clickCreateBookmarkGroup = ()=>{
 
+        if (batchSelectCount.value === 0) {
+            alert('请先选择标签页');
+            return;
+        }
+
+        const groupName = prompt('请输入书签组名称：');
+        if (!groupName) return;
+        const selectedTabs: string[] = searchResult.results.filter(e => e.checked).map(e => e.id.toString())
+        addToGroup(groupName, selectedTabs, ()=>{
+            alert('书签组创建成功！');
+            document.getElementById('cancelBtn').click();
+        });
     }
     const clickSelectAll = ()=>{
+        setSearchResults((sr)=>{
+            for (let result of sr.tab.results) {
+                result.checked = !result.checked
+            }
+        })
+
 
     }
     return (<div className={styles["group-header"]}>
@@ -87,7 +136,7 @@ function SearchResultHeader({searchResult,  showBatchSelect, setShowBatchSelect,
                 {/*窗口:{{ tabStats.windowCount }} 标签页:{{ tabStats.tabCount }}*/}
             </div>
                 <button onClick={clickBatchSelect} className={styles["action-btn"]}
-                        v-if="!showBatchSelect">批量选择</button></>}
+                        >批量选择</button></>}
             {showBatchSelect &&
             <div className={styles["batch-actions"]} v-if="">
                 <button id="selectAll" className={styles["action-btn"]} onClick={clickSelectAll}>全选
@@ -109,17 +158,16 @@ function SearchResultHeader({searchResult,  showBatchSelect, setShowBatchSelect,
     </div>)
 }
 
-function SearchResult({searchResult, isLoading}: { searchResult: SearchResult ,isLoading:boolean}) {
+function SearchResult({searchResult, isLoading, setSearchResults}: { searchResult: SearchResult ,isLoading:boolean}) {
 
     const [showBatchSelect, setShowBatchSelect] = useState(false)
-    const [batchSelectCount, setBatchSelectCount] = useState(0)
     return (
         <>
             {searchResult && <div className={styles["search-box"]}>
-                <SearchResultHeader searchResult={searchResult} setShowBatchSelect={setShowBatchSelect} showBatchSelect={showBatchSelect}>
+                <SearchResultHeader searchResult={searchResult} setShowBatchSelect={setShowBatchSelect} showBatchSelect={showBatchSelect} setSearchResults={setSearchResults}>
                 </SearchResultHeader>
                 {isLoading && <div className={styles["loading"]}>加载中...</div>}
-                <SearchItems searchResult={searchResult} showBatchSelect={showBatchSelect} setBatchSelectCount={setBatchSelectCount}/>
+                <SearchItems searchResult={searchResult} showBatchSelect={showBatchSelect} setSearchResults={setSearchResults}/>
             </div>
             }
         </>
@@ -146,6 +194,7 @@ export default function Search() {
         }
     })
     const [isLoading, setIsLoading] = useState(false)
+
     const [showResults, setShowResults] = useState(false)
     const [lastUpdated, setLastUpdated] = useState('')
 
@@ -198,11 +247,11 @@ export default function Search() {
 
     return (
         <div className={styles["search-container"]}>
-            <SearchHead doSearch={doSearch} searchText={searchText} setSearchText={setSearchText}></SearchHead>
+            <SearchHead doSearch={doSearch} searchText={searchText} setSearchText={setSearchText} lastUpdated={lastUpdated}></SearchHead>
             <div id="searchResults" className={styles["results-container"]}>
-                <SearchResult searchResult={searchResults.tab} isLoading={isLoading}></SearchResult>
-                <SearchResult searchResult={searchResults.history} isLoading={isLoading}></SearchResult>
-                <SearchResult searchResult={searchResults.bookmark} isLoading={isLoading}></SearchResult>
+                <SearchResult searchResult={searchResults.tab} isLoading={isLoading} setSearchResults={setSearchResults}></SearchResult>
+                <SearchResult searchResult={searchResults.history} isLoading={isLoading} setSearchResults={setSearchResults}></SearchResult>
+                <SearchResult searchResult={searchResults.bookmark} isLoading={isLoading} setSearchResults={setSearchResults}></SearchResult>
             </div>
         </div>
     )
