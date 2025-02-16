@@ -1,19 +1,20 @@
 import Tab = chrome.tabs.Tab;
-import {useEffect, useMemo, useState} from "react";
+import {useEffect, useMemo, useRef, useState} from "react";
 import {groupBy} from "../js/util";
 import styles from '../css/Search.module.css';
-import {CONFIG, search, SearchResults, typeLabels, useDebounce} from "../js/search";
+import {CONFIG, Result, search, SearchResults, typeLabels, useDebounce} from "../js/search";
 import SearchItems from "./SearchItems";
 import BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 import HistoryItem = chrome.history.HistoryItem;
 import {MessageRequest} from "../js/commonDeclare";
 import {flushSync} from "react-dom";
+import {useImmer} from "use-immer";
 
 
 
 function SearchHead({doSearch, searchText, setSearchText}) {
     const [lastUpdated, setLastUpdated] = useState('')
-    // const debounceSearch = useDebounce(doSearch, CONFIG.debounceTime);
+
     const handleBlur = () => {
 
     }
@@ -23,8 +24,8 @@ function SearchHead({doSearch, searchText, setSearchText}) {
     }
 
     const onChangeSearchText = (e) => {
-        // setSearchText(e.target.value)
-        // debounceSearch()
+        setSearchText(e.target.value)
+         // debounceSearch()
     }
     // debounceSearch()
 
@@ -63,55 +64,62 @@ function SearchHead({doSearch, searchText, setSearchText}) {
     )
 }
 
-function SearchResultHeader({resultType, batchSelect, batchCloseSelectTabs, createBookmarkGroup, batchSelectCount}) {
+function SearchResultHeader({searchResult,  showBatchSelect, setShowBatchSelect, batchSelectCount}) {
+    const resultType = searchResult.type;
+    const clickBatchSelect = () => {
+        setShowBatchSelect(!showBatchSelect)
+    }
+
+    const clickBatchCloseSelectTabs = ()=>{
+
+    }
+    const clickCreateBookmarkGroup = ()=>{
+
+    }
+    const clickSelectAll = ()=>{
+
+    }
     return (<div className={styles["group-header"]}>
         <span>{typeLabels[resultType]}</span>
         {resultType === 'tab' && <div className={styles["batch-select-container"]}>
-            <div v-if="!showBatchSelect" className={styles["tab-stats"]}>
+            {!showBatchSelect &&
+            <><div v-if="!showBatchSelect" className={styles["tab-stats"]}>
                 {/*窗口:{{ tabStats.windowCount }} 标签页:{{ tabStats.tabCount }}*/}
             </div>
-            <button onClick={batchSelect} className={styles["action-btn"]}
-                    v-if="!showBatchSelect">批量选择
-            </button>
-            <div className={styles["batch-actions"]} v-if="showBatchSelect">
-                <button id="selectAll" className={styles["action-btn"]} onClick="selectAll">全选
+                <button onClick={clickBatchSelect} className={styles["action-btn"]}
+                        v-if="!showBatchSelect">批量选择</button></>}
+            {showBatchSelect &&
+            <div className={styles["batch-actions"]} v-if="">
+                <button id="selectAll" className={styles["action-btn"]} onClick={clickSelectAll}>全选
                 </button>
                 <button id="selectAll" className={styles["action-btn"]}
-                        onClick={batchCloseSelectTabs}>关闭
+                        onClick={clickBatchCloseSelectTabs}>关闭
                 </button>
                 <button id="createGroup" className={styles["action-btn"]}
-                        onClick={createBookmarkGroup}>创建书签组
+                        onClick={clickCreateBookmarkGroup}>创建书签组
                 </button>
                 <span className={styles["selected-count"]}>已选择: {batchSelectCount}</span>
                 <button className={styles["action-btn"]} onClick={() => setShowBatchSelect(false)}
                         id="cancelBtn">取消
                 </button>
             </div>
+            }
+
         </div>}
     </div>)
 }
 
-function SearchResult({searchResult}: { searchResult: SearchResult }) {
+function SearchResult({searchResult, isLoading}: { searchResult: SearchResult ,isLoading:boolean}) {
 
+    const [showBatchSelect, setShowBatchSelect] = useState(false)
     const [batchSelectCount, setBatchSelectCount] = useState(0)
-    const batchSelect = () => {
-
-    }
-    const batchCloseSelectTabs = () => {
-
-    }
-
-    const createBookmarkGroup = () => {
-
-    }
     return (
         <>
             {searchResult && <div className={styles["search-box"]}>
-                <SearchResultHeader resultType={searchResult.type} batchSelect={batchSelect}
-                                    batchSelectCount={batchSelectCount}
-                                    batchCloseSelectTabs={batchCloseSelectTabs}
-                                    createBookmarkGroup={createBookmarkGroup}></SearchResultHeader>
-                <SearchItems searchResult={searchResult}/>
+                <SearchResultHeader searchResult={searchResult} setShowBatchSelect={setShowBatchSelect} showBatchSelect={showBatchSelect}>
+                </SearchResultHeader>
+                {isLoading && <div className={styles["loading"]}>加载中...</div>}
+                <SearchItems searchResult={searchResult} showBatchSelect={showBatchSelect} setBatchSelectCount={setBatchSelectCount}/>
             </div>
             }
         </>
@@ -123,7 +131,7 @@ export default function Search() {
 
 
     const [searchText, setSearchText] = useState('')
-    const [searchResults, setSearchResults] = useState<SearchResults>({
+    const [searchResults, setSearchResults] = useImmer<SearchResults>({
         tab: {
             type: 'tab',
             results: []
@@ -170,12 +178,18 @@ export default function Search() {
     const init = ()=>{
         useEffect(()=>{
             chrome.runtime.onMessage.addListener(handleMessage);
-            doSearch()
             return () => {
                 chrome.runtime.onMessage.removeListener(handleMessage);
             };
         }, [])
-
+        const timeoutId = useRef<number|undefined>(undefined)
+        useEffect(() => {
+            clearTimeout(timeoutId.current)
+            timeoutId.current = setTimeout(doSearch, CONFIG.debounceTime)
+            return ()=>{
+                clearTimeout(timeoutId.current)
+            }
+        }, [searchText]);
     }
 
     init()
@@ -186,10 +200,9 @@ export default function Search() {
         <div className={styles["search-container"]}>
             <SearchHead doSearch={doSearch} searchText={searchText} setSearchText={setSearchText}></SearchHead>
             <div id="searchResults" className={styles["results-container"]}>
-                {isLoading && <div className={styles["loading"]}>加载中...</div>}
-                <SearchResult searchResult={searchResults.tab}></SearchResult>
-                <SearchResult searchResult={searchResults.history}></SearchResult>
-                <SearchResult searchResult={searchResults.bookmark}></SearchResult>
+                <SearchResult searchResult={searchResults.tab} isLoading={isLoading}></SearchResult>
+                <SearchResult searchResult={searchResults.history} isLoading={isLoading}></SearchResult>
+                <SearchResult searchResult={searchResults.bookmark} isLoading={isLoading}></SearchResult>
             </div>
         </div>
     )

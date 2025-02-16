@@ -2,9 +2,7 @@ import styles from '../css/SearchItems.module.css'
 import {formatTimeAgo, SearchResult, typeLabels} from "../js/search";
 import {useState} from "react";
 
-export default function SearchItems({searchResult}: { searchResult: SearchResult }) {
-
-    const [showBatchSelect,setShowBatchSelect] = useState(false)
+export default function SearchItems({searchResult, showBatchSelect}: { searchResult: SearchResult }) {
 
     function closeTab() {
 

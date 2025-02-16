@@ -3,7 +3,7 @@
 import Tab = chrome.tabs.Tab;
 import BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 import HistoryItem = chrome.history.HistoryItem;
-import {ref} from "vue";
+import {h, ref} from "vue";
 import {useCallback, useEffect, useRef} from "react";
 
 export interface Result {
@@ -237,21 +237,19 @@ export const search = async ({
        try {
            // 搜索书签
            const bookmarkResults: Result[] = await new Promise((resolve) => {
-               console.log('书签搜索', query)
                chrome.bookmarks.search(query, (items) => {
                    resolve(items.slice(0, CONFIG.maxResults.bookmarks).map(mapBookmarks))
                })
            })
-           results.tab.results = bookmarkResults
+           results.bookmark.results = bookmarkResults
 
            // 搜索标签页
            const tabs = await chrome.tabs.query({})
+
            const tabResults = tabs
                .filter(tab =>{
-                       if(tab.title && tab.url) {
-                           tab.title.toLowerCase().includes(query) ||
-                           tab.url.toLowerCase().includes(query)
-                       }
+                    return (tab.title && tab.title.toLowerCase().includes(query)) ||
+                        (tab.url && tab.url.toLowerCase().includes(query))
                    }
                )
                .map(mapTab)
