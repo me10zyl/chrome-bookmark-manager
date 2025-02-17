@@ -24,7 +24,8 @@ export interface Result {
     status?: string,
     origin?: Tab,
     groupId?:number,
-    groupTitle?:string
+    groupTitle?:string,
+    highlight?:boolean,
 }
 
 export interface SearchResult {
@@ -53,11 +54,24 @@ export const formatTimeAgo = (timestamp: number) => {
     const now = Date.now();
     const seconds = Math.floor((now - timestamp) / 1000);
 
-    if (seconds < 60) return `${seconds} 秒前`;
-    if (seconds < 3600) return `${Math.floor(seconds / 60)} 分钟前`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)} 小时前`;
-    return `${Math.floor(seconds / 86400)} 天前`;
-}
+    const intervals = [
+        { label: '年', seconds: 31536000 },  // 365天 * 24小时 * 60分钟 * 60秒
+        { label: '月', seconds: 2592000 },   // 30天 * 24小时 * 60分钟 * 60秒
+        { label: '天', seconds: 86400 },     // 24小时 * 60分钟 * 60秒
+        { label: '小时', seconds: 3600 },    // 60分钟 * 60秒
+        { label: '分钟', seconds: 60 },       // 60秒
+        { label: '秒', seconds: 1 }
+    ];
+
+    for (const interval of intervals) {
+        if (seconds >= interval.seconds) {
+            const count = Math.floor(seconds / interval.seconds);
+            return `${count} ${interval.label}${count > 1 ? '' : ''}前`;
+        }
+    }
+
+    return '刚刚';
+};
 
 export const typeLabels = {
     tab: '标签页',
@@ -72,13 +86,17 @@ export const search = async ({
     setShowResults,
     setIsLoading,
     setLastUpdated,
-    searchResultsDispatch
+    searchResultsDispatch,
+    hideUnmatched,
+    searchResults
 }: {
     searchText: string,
     setShowResults: (showResults: boolean) => void,
     setIsLoading: (isLoading: boolean) => void,
     setLastUpdated: (lastUpdated: string) => void
-    searchResultsDispatch: (action: SearchResultsDispatch) => void
+    searchResultsDispatch: (action: SearchResultsDispatch) => void,
+    hideUnmatched: boolean,
+    searchResults: SearchResults
 }) => {
     console.log('开始搜索:', searchText)
     setShowResults(false)
@@ -175,7 +193,8 @@ export const search = async ({
             title: item.title,
             url: item.url,
             type: 'bookmark',
-            favicon: item.url ? `chrome://favicon/${item.url}` : undefined
+            favicon: item.url ? `chrome://favicon/${item.url}` : undefined,
+            lastAccessed: item.dateAdded
         }
     }
 
@@ -202,7 +221,8 @@ export const search = async ({
             url: his.url,
             type: 'history',
             favicon: his.url ? `chrome://favicon/${his.url}` : undefined,
-            lastVisitTime: his.lastVisitTime
+            // lastVisitTime: his.lastVisitTime
+            lastAccessed: his.lastVisitTime
         }
     }
 
@@ -248,17 +268,31 @@ export const search = async ({
            })
            results.bookmark.results = bookmarkResults
 
+           let tabResults = null;
            // 搜索标签页
-           const tabs = await chrome.tabs.query({})
-
-           const tabResults = tabs
-               .filter(tab =>{
-                    return (tab.title && tab.title.toLowerCase().includes(query)) ||
-                        (tab.url && tab.url.toLowerCase().includes(query))
+           if(hideUnmatched) {
+               const tabs = await chrome.tabs.query({})
+               tabResults = tabs
+                   .filter(tab => {
+                           return (tab.title && tab.title.toLowerCase().includes(query)) ||
+                               (tab.url && tab.url.toLowerCase().includes(query))
+                       }
+                   ).map(mapTab);
+               await sortTab(tabResults)
+           }else{
+               const results = [...searchResults.tab.results.map(e=>{
+                   return {
+                       ...e
                    }
-               )
-               .map(mapTab)
-           await sortTab(tabResults)
+               })];
+               results.filter(tab => {
+                   return (tab.title && tab.title.toLowerCase().includes(query)) ||
+                       (tab.url && tab.url.toLowerCase().includes(query))
+               }).forEach(e=>{
+                   e.highlight = true
+               })
+               tabResults = results;
+           }
            results.tab.results = tabResults
 
            const historyResults: Result[] = await new Promise((resolve) => {

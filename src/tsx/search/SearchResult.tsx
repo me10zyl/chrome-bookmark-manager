@@ -6,7 +6,19 @@ import {addToGroup} from "../../js/bookmarkGroup";
 import {useSearchResults, useSearchResultsDispatch} from "./SearchResultsContext";
 import Tab = chrome.tabs.Tab;
 
-function SearchResultHeader({searchResult, showBatchSelect, setShowBatchSelect}) {
+
+
+interface SearchResultHeaderProps {
+    searchResult: {
+        type: ResultType;
+        results: Result[];
+    };
+    showBatchSelect: boolean;
+    setShowBatchSelect: (show: boolean) => void;
+    hideUnmatched: boolean;
+}
+
+function SearchResultHeader({searchResult, showBatchSelect, setShowBatchSelect, hideUnmatched}: SearchResultHeaderProps) {
     const resultType = searchResult.type;
     let resultsDispatch = useSearchResultsDispatch();
     const clickBatchSelect = () => {
@@ -112,8 +124,8 @@ function SearchResultHeader({searchResult, showBatchSelect, setShowBatchSelect})
     </div>)
 }
 
-export function SearchResult({isLoading, resultType}: {
-    isLoading: boolean, resultType: ResultType
+export function SearchResult({isLoading, resultType, hideUnmatched}: {
+    isLoading: boolean, resultType: ResultType, hideUnmatched: boolean
 }) {
 
     const searchResult = useSearchResults()[resultType]
@@ -122,7 +134,7 @@ export function SearchResult({isLoading, resultType}: {
         <>
             {searchResult && <div className={styles["search-box"]}>
                 <SearchResultHeader searchResult={searchResult} setShowBatchSelect={setShowBatchSelect}
-                                    showBatchSelect={showBatchSelect} >
+                                    showBatchSelect={showBatchSelect} hideUnmatched={hideUnmatched} >
                 </SearchResultHeader>
                 {isLoading && <div className={styles["loading"]}>加载中...</div>}
                 {!isLoading && <SearchItems searchResult={searchResult} showBatchSelect={showBatchSelect}

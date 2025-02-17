@@ -45,7 +45,7 @@ export default function SearchItems({searchResult, showBatchSelect}) {
     return (
         <>
             {searchResult.results.map(tab => (
-                <div key={tab.id} className={styles["result-item"]}>
+                <div key={tab.id} className={styles["result-item"] + " " + (tab.highlight ? styles['highlight-match'] :'')}>
                     <div className={styles["result-content"]}>
                         {showBatchSelect &&
                             <input type="checkbox" className={styles["select-checkbox"]} checked={tab.checked}

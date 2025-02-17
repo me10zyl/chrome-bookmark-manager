@@ -8,13 +8,15 @@ import {SearchResultsProvider, useSearchResults, useSearchResultsDispatch} from 
 
 function Search() {
     const searchResultsDispatch = useSearchResultsDispatch();
+    const searchResults = useSearchResults();
     const [searchText, setSearchText] = useState('')
     const [isLoading, setIsLoading] = useState(false)
     const [lastUpdated, setLastUpdated] = useState('')
     const [showResults, setShowResults] = useState(false)
+    const [hideUnmatched, setHideUnmatched] = useState(true)
 
     const doSearch = () => {
-        search({searchText, setIsLoading, setShowResults, setLastUpdated, searchResultsDispatch})
+        search({searchText, setIsLoading, setShowResults, setLastUpdated, searchResultsDispatch, hideUnmatched, searchResults})
     }
 
     const handleMessage = (message: MessageRequest) => {
@@ -45,11 +47,11 @@ function Search() {
     return (
         <>
             <SearchHead doSearch={doSearch} searchText={searchText} setSearchText={setSearchText}
-                        lastUpdated={lastUpdated}></SearchHead>
+                        lastUpdated={lastUpdated} hideUnmatched={hideUnmatched} setHideUnmatched={setHideUnmatched}></SearchHead>
             <div id="searchResults" className={styles["results-container"]}>
-                <SearchResult isLoading={isLoading} resultType='tab'></SearchResult>
-                <SearchResult isLoading={isLoading} resultType='history'></SearchResult>
-                <SearchResult isLoading={isLoading} resultType='bookmark'></SearchResult>
+                <SearchResult isLoading={isLoading} resultType='tab' hideUnmatched={hideUnmatched}></SearchResult>
+                <SearchResult isLoading={isLoading} resultType='history' hideUnmatched={hideUnmatched}></SearchResult>
+                <SearchResult isLoading={isLoading} resultType='bookmark' hideUnmatched={hideUnmatched}></SearchResult>
             </div>
         </>
     )

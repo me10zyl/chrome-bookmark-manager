@@ -3,31 +3,48 @@ import {Dropdown, DropdownItem} from "../common/Dropdown";
 import React, {useContext} from "react";
 import {useSearchResults, useSearchResultsDispatch} from "./SearchResultsContext";
 import {flushSync} from "react-dom";
+import {FaEye, FaEyeSlash} from 'react-icons/fa';
 
-export function SearchHead({doSearch, searchText, setSearchText, lastUpdated}) {
+interface SearchHeadProps {
+    doSearch: () => void;
+    searchText: string;
+    setSearchText: (text: string) => void;
+    lastUpdated: string;
+    hideUnmatched: boolean;
+    setHideUnmatched: (hide: boolean) => void;
+}
+
+export function SearchHead({
+                               doSearch,
+                               searchText,
+                               setSearchText,
+                               lastUpdated,
+                               hideUnmatched,
+                               setHideUnmatched
+                           }: SearchHeadProps) {
     let searchResults = useSearchResults();
     console.log('searchResults', searchResults)
     let resultsDispatch = useSearchResultsDispatch();
     const onChangeSearchText = (e) => {
         setSearchText(e.target.value)
     }
-    const closeAllGroups = ()=>{
+    const closeAllGroups = () => {
         (async () => {
-            const allTabIds:number[] = [];
+            const allTabIds: number[] = [];
             const groups = await chrome.tabGroups.query({});
             for (const group of groups) {
-                const tabs = await chrome.tabs.query({ groupId: group.id });
+                const tabs = await chrome.tabs.query({groupId: group.id});
                 const tabIds = tabs.map(tab => tab.id);
                 await chrome.tabs.remove(tabIds); // 关闭分组中的所有标签
                 allTabIds.push(...tabIds); // 将当前分组的标签ID添加到数组中
             }
             console.log("All tab groups have been closed!");
-            flushSync(()=>{
+            flushSync(() => {
                 resultsDispatch({
                     type: 'set',
                     searchResult: {
                         type: 'tab',
-                        results:  searchResults.tab.results.filter((r)=>{
+                        results: searchResults.tab.results.filter((r) => {
                             return !allTabIds.includes(r.id)
                         })
                     }
@@ -56,17 +73,26 @@ export function SearchHead({doSearch, searchText, setSearchText, lastUpdated}) {
                         最后更新时间: {lastUpdated}
                     </div>
                 </div>
-                <Dropdown>
-                    <DropdownItem onClick={closeAllGroups}>
-                        关闭所有的分组
-                    </DropdownItem>
-                </Dropdown>
+                <div>
+                    <button
+                        className={styles['visibility-toggle']}
+                        onClick={() => setHideUnmatched(!hideUnmatched)}
+                        title={hideUnmatched ? "显示所有项" : "只显示匹配项"}
+                    >
+                        {hideUnmatched ? <FaEyeSlash/> : <FaEye/>}
+                    </button>
+                    <Dropdown>
+                        <DropdownItem onClick={closeAllGroups}>
+                            关闭所有的分组
+                        </DropdownItem>
+                    </Dropdown>
+                </div>
             </div>
             <div className={styles["search-wrapper"]}>
                 <input type="text" id={styles.searchInput} placeholder="搜索标签页、书签、历史记录..." autoFocus
                        onChange={onChangeSearchText}
                        autofocus={true}
-                       value={searchText} />
+                       value={searchText}/>
                 <div className={styles["search-icon"]}>🔍</div>
             </div>
         </>
