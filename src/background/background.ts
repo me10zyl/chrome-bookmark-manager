@@ -89,6 +89,7 @@ chrome.runtime.onInstalled.addListener(async () => {
 
     chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         if (info.menuItemId === "showDialog") {
+            console.log('showDialog.')
             await executeScript(tab);
             let bookmarkGroups = await fetchBookmarkGroups();
             let [bookmarkGroupName, bookmarkGroupId] = getBookmarkGroupName(bookmarkGroups, tab.url);

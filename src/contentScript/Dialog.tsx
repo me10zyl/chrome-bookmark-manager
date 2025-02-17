@@ -4,7 +4,7 @@ import {AddBookMark, BookmarkData, MessageRequest, RemoveBookMark} from "../js/c
 
 function Footer(props: { onClick: () => void }) {
     return <div className="footer">
-        <button onClick={props.onClick}>关闭
+        <button onClick={props.onClick} className="action-btn">关闭
         </button>
     </div>;
 }
@@ -52,12 +52,12 @@ function Content({data, setShow} : {data: BookmarkData, setShow: React.Dispatch<
         {showSave &&
             <div className="saveCancel">
                 <input placeholder="书签组名称" value={groupName} onChange={(e)=>{setGroupName(e.target.value)}}/>
-                <button onClick={clickSave}>保存</button>
-                <button onClick={clickCancel}>取消</button>
+                <button className="action-btn" onClick={clickSave}>保存</button>
+                <button className="action-btn" onClick={clickCancel}>取消</button>
             </div>
         }
         <div>
-            {!showSave && <button onClick={data.addOrRemove === "add" ? addToGroup : removeFromGroup}>
+            {!showSave && <button className="action-btn" onClick={data.addOrRemove === "add" ? addToGroup : removeFromGroup}>
                 {data.addOrRemove === "add" ? "添加到标签组" : "从标签组移除"}
             </button>}
             {data.bookmarkGroupName && <span>(已添加到的组：{data.bookmarkGroupName})</span>}
@@ -91,8 +91,21 @@ export default function Dialog({show, setShow, data}) {
       display: flex;
       flex-direction: column;
       justify-content: center;
-      align-items: start;
+      align-items: center;
       gap: 10px;
+    }
+    .action-btn {
+        padding: 5px 10px;
+        border-radius: 4px;
+        border: 1px solid #dadce0;
+        background: white;
+        cursor: pointer;
+        font-size: 14px;
+        color: #3c4043;
+        flex-shrink: 0;
+        /*  //overflow: hidden;
+          //text-overflow: ellipsis;
+          //white-space: nowrap;*/
     }
     .saveCancel{
      display: flex;
