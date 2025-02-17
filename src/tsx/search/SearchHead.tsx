@@ -78,6 +78,7 @@ export function SearchHead({
                         className={styles['visibility-toggle']}
                         onClick={() => setHideUnmatched(!hideUnmatched)}
                         title={hideUnmatched ? "显示所有项" : "只显示匹配项"}
+                        style={{display: 'none'}}
                     >
                         {hideUnmatched ? <FaEyeSlash/> : <FaEye/>}
                     </button>
