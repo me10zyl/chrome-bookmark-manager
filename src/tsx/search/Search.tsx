@@ -1,8 +1,7 @@
 import {useEffect, useRef, useState} from "react";
 import styles from '../../css/Search.module.css';
-import {CONFIG, search, SearchResults} from "../../js/search";
+import {CONFIG, search} from "../../js/search";
 import {MessageRequest} from "../../js/commonDeclare";
-import {useImmer} from "use-immer";
 import {SearchHead} from "./SearchHead";
 import {SearchResult} from "./SearchResult";
 import {SearchResultsProvider, useSearchResults, useSearchResultsDispatch} from "./SearchResultsContext";
@@ -11,25 +10,8 @@ function Search() {
     const searchResultsDispatch = useSearchResultsDispatch();
     const [searchText, setSearchText] = useState('')
     const [isLoading, setIsLoading] = useState(false)
-
-    const [showResults, setShowResults] = useState(false)
     const [lastUpdated, setLastUpdated] = useState('')
-
-    const [groupedResults, setGroupedResults] = useState('')
-    const [batchSelectCount, setBatchSelectCount] = useState(0)
-    const [batchSelect, setBatchSelect] = useState(false)
-
-    const debounceSearch = () => {
-    }
-
-
-    function batchCloseSelectTabs() {
-
-    }
-
-    function createBookmarkGroup() {
-
-    }
+    const [showResults, setShowResults] = useState(false)
 
     const doSearch = () => {
         search({searchText, setIsLoading, setShowResults, setLastUpdated, searchResultsDispatch})
@@ -59,7 +41,6 @@ function Search() {
     }
 
     init()
-
 
     return (
         <>

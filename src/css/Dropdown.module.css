@@ -81,7 +81,7 @@ body {
     fill: #1a73e8;
 }
 
-::v-deep(.dropdown-menu) {
+.dropdown-menu {
     position: absolute;
     top: 100%;
     right: 0;
@@ -98,14 +98,14 @@ body {
     z-index: 1000;
 }
 
-::v-deep(.dropdown-menu.show) {
+.dropdown-menu.show {
     opacity: 1;
     visibility: visible;
     transform: translateY(0);
     pointer-events: auto;
 }
 
-::v-deep(.dropdown-item) {
+.dropdown-item {
     display: flex;
     align-items: center;
     width: 100%;

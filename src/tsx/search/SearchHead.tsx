@@ -1,22 +1,42 @@
 import styles from "../../css/Search.module.css";
+import {Dropdown, DropdownItem} from "../common/Dropdown";
+import React, {useContext} from "react";
+import {useSearchResults, useSearchResultsDispatch} from "./SearchResultsContext";
+import {flushSync} from "react-dom";
 
 export function SearchHead({doSearch, searchText, setSearchText, lastUpdated}) {
-
-
-    const handleBlur = () => {
-
-    }
-
-    const handleFocus = () => {
-
-    }
-
+    let searchResults = useSearchResults();
+    console.log('searchResults', searchResults)
+    let resultsDispatch = useSearchResultsDispatch();
     const onChangeSearchText = (e) => {
         setSearchText(e.target.value)
-        // debounceSearch()
     }
-    // debounceSearch()
+    const closeAllGroups = ()=>{
+        (async () => {
+            const allTabIds:number[] = [];
+            const groups = await chrome.tabGroups.query({});
+            for (const group of groups) {
+                const tabs = await chrome.tabs.query({ groupId: group.id });
+                const tabIds = tabs.map(tab => tab.id);
+                await chrome.tabs.remove(tabIds); // 关闭分组中的所有标签
+                allTabIds.push(...tabIds); // 将当前分组的标签ID添加到数组中
+            }
+            console.log("All tab groups have been closed!");
+            flushSync(()=>{
+                resultsDispatch({
+                    type: 'set',
+                    searchResult: {
+                        type: 'tab',
+                        results:  searchResults.tab.results.filter((r)=>{
+                            return !allTabIds.includes(r.id)
+                        })
+                    }
+                })
+            })
 
+            alert('已关闭所有分组标签')
+        })();
+    }
     return (
         <>
             <div className={styles["page-head"]}>
@@ -36,16 +56,17 @@ export function SearchHead({doSearch, searchText, setSearchText, lastUpdated}) {
                         最后更新时间: {lastUpdated}
                     </div>
                 </div>
+                <Dropdown>
+                    <DropdownItem onClick={closeAllGroups}>
+                        关闭所有的分组
+                    </DropdownItem>
+                </Dropdown>
             </div>
-            {/*   <Dropdown>
-            <Dropdown-item onClick="closeAllGroups">
-            关闭所有的分组
-        </Dropdown-item>
-    </Dropdown>*/}
             <div className={styles["search-wrapper"]}>
                 <input type="text" id={styles.searchInput} placeholder="搜索标签页、书签、历史记录..." autoFocus
                        onChange={onChangeSearchText}
-                       value={searchText} onBlur={handleBlur} onFocus={handleFocus}/>
+                       autofocus={true}
+                       value={searchText} />
                 <div className={styles["search-icon"]}>🔍</div>
             </div>
         </>

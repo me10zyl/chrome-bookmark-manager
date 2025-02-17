@@ -36,7 +36,8 @@ function SearchResultsReducer(state: SearchResults, action: SearchResultsDispatc
             action.update(state[action.updateType]);
             break;
         case 'set':
-            return action.searchResult;
+            state[action.searchResult.type] = action.searchResult;
+            break
         default:
             throw new Error(`Unhandled action type: ${action.type}`)
     }
@@ -53,7 +54,7 @@ export function SearchResultsProvider({children}) {
     )
 }
 
-export function useSearchResults(){
+export function useSearchResults(): SearchResults{
     return useContext(SearchResultsContext);
 }
 
