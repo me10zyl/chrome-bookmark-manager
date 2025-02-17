@@ -114,6 +114,8 @@ chrome.runtime.onInstalled.addListener(async () => {
             // 触发全局搜索的逻辑
             let tab = await clickBtn('search');
             chrome.tabs.sendMessage(tab.id, { action: 'updateSearchResults' });
+        }else if(command === 'open-bookmark-group'){
+            let tab = await clickBtn('bookmarkGroups');
         }
     });
     chrome.tabs.onActivated.addListener(async (activeInfo) => {

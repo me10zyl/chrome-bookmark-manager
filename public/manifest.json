@@ -31,10 +31,17 @@
   "commands": {
     "open-search": {
       "suggested_key": {
-        "default": "Ctrl+U",
+        "default": "Alt+U",
         "mac": "Command+U"
       },
       "description": "打开全局搜索"
+    },
+    "open-bookmark-group": {
+      "suggested_key": {
+        "default": "Alt+I",
+        "mac": "Command+U"
+      },
+      "description": "打开书签组"
     }
   },
   "icons": {
