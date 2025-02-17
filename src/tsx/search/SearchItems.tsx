@@ -1,5 +1,5 @@
-import styles from '../css/SearchItems.module.css'
-import {formatTimeAgo, SearchResult, typeLabels} from "../js/search";
+import styles from '../../css/SearchItems.module.css'
+import {formatTimeAgo, SearchResult, typeLabels} from "../../js/search";
 import {useState} from "react";
 
 export default function SearchItems({searchResult, showBatchSelect, setSearchResults}: { searchResult: SearchResult }) {

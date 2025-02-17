@@ -1,6 +1,6 @@
 import { Route, Routes } from 'react-router-dom';
 import Popup from "./Popup";
-import Search from "./Search";
+import Search from "./search/Search";
 
 
 export default function RoutesConfig() {
