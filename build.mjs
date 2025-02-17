@@ -39,6 +39,12 @@ function getConfig(inputName, inputPath) {
             }
         },
         plugins: [react()],
+        css: {
+            modules: {
+                localsConvention: 'camelCase', // 或 'camelCaseOnly'
+                generateScopedName: '[local]__[hash:base64:5]',
+            },
+        },
         resolve:
             {
                 alias: {

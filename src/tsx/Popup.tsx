@@ -46,7 +46,7 @@ export default function Popup() {
                 <h1>书签管理器</h1>
             </div>
             <div className={styles['button-group']}>
-                <button id="openSearch" className={styles.btnPrimary} onClick={() => clickBtn('search')}>
+                <button id="openSearch" className={styles.btnPrimary} aa='1' onClick={() => clickBtn('search')}>
                     <span className={styles.icon}>🔍</span>
                     全局搜索
                 </button>
