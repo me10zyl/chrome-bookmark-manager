@@ -1,0 +1,271 @@
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background: #f5f5f5;
+}
+
+.group-edit-form {
+    display: flex;
+    column-gap: 10px;
+}
+
+.edit-actions {
+    display: flex;
+    column-gap: 10px;
+}
+
+.delete-bookmark-btn {
+    background: #fff;
+    padding: 5px 16px 5px 16px;
+    border-radius: 4px;
+    border: 1px solid #dadce0;
+    cursor: pointer;
+    color: #e10a1d;
+}
+
+.group-edit-form input {
+    box-shadow: rgba(0, 0, 0, 0.1) 0px 2px 6px;
+    padding: 5px 40px 5px 16px;
+    border-radius: 8px;
+    box-sizing: border-box;
+    outline: none;
+    border: none;
+}
+
+.action-btn {
+    padding: 5px 10px;
+    border-radius: 4px;
+    border: 1px solid #dadce0;
+    background: white;
+    cursor: pointer;
+    font-size: 14px;
+    color: #3c4043;
+    flex-shrink: 0;
+    /*  //overflow: hidden;
+      //text-overflow: ellipsis;
+      //white-space: nowrap;*/
+}
+
+.action-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.group-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-grow: 1;
+}
+
+.group-item {
+    background: white;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #eee;
+}
+
+.group-title-wrapper {
+    display: flex;
+}
+
+.group-title-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.group-title {
+    font-size: 16px;
+    font-weight: 500;
+    color: #202124;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.group-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.open-all-btn {
+    background: #4285f4;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.open-all-btn:hover {
+    background: #3367d6;
+}
+
+.delete-group-btn {
+    background: white;
+    color: #dc3545;
+    border: 1px solid #dc3545;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.delete-group-btn:hover {
+    background: #dc3545;
+    color: white;
+}
+
+.bookmarks-list {
+    padding: 16px;
+}
+.bookmark-content{
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.bookmark-item {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    transition: background-color 0.2s;
+    display: flex;
+    justify-content: space-between;
+}
+
+.bookmark-item:last-child {
+    border-bottom: none;
+}
+
+.bookmark-item:hover {
+    background-color: #f8f9fa;
+}
+
+.bookmark-item a {
+    display: flex;
+    flex-direction: column;
+    color: #3c4043;
+    text-decoration: none;
+    gap: 4px;
+}
+
+.bookmark-title {
+    font-size: 14px;
+    color: #202124;
+}
+
+.bookmark-url {
+    font-size: 12px;
+    color: #5f6368;
+}
+
+.folder-name {
+    font-size: 14px;
+    color: #5f6368;
+    font-style: italic;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #5f6368;
+}
+
+.empty-state p {
+    margin: 8px 0;
+}
+
+.empty-hint {
+    font-size: 14px;
+    color: #80868b;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 下拉菜单相关样式 */
+
+
+.edit-group-btn svg {
+    fill: #444;
+    width: 18px;
+    height: 18px;
+    transition: fill 0.2s ease;
+}
+
+.edit-group-btn:hover svg {
+    fill: #1a73e8;
+}
+
+.dropdown-item svg {
+    width: 16px;
+    height: 16px;
+    margin-right: 12px;
+    fill: #5f6368;
+}
+
+.dropdown-item:hover svg {
+    fill: #1a73e8;
+}
+
+/* 书签组样式 */
+.bookmark-folder {
+    background: #fff;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.group-title-wrapper {
+    flex: 1;
+    min-width: 0;
+}
+
+.group-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8f9fa;
+}
+
+
+.group-title {
+    font-size: 16px;
+    font-weight: 500;
+    color: #202124;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
