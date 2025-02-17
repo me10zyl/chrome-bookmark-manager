@@ -1,19 +1,26 @@
 import {useMemo, useState} from "react";
 import styles from "../../css/Search.module.css";
 import SearchItems from "./SearchItems";
-import {Result, typeLabels} from "../../js/search";
+import {Result, ResultType, typeLabels} from "../../js/search";
 import {addToGroup} from "../../js/bookmarkGroup";
+import {useSearchResults, useSearchResultsDispatch} from "./SearchResultsContext";
+import Tab = chrome.tabs.Tab;
 
-function SearchResultHeader({searchResult, showBatchSelect, setShowBatchSelect, setSearchResults}) {
+function SearchResultHeader({searchResult, showBatchSelect, setShowBatchSelect}) {
     const resultType = searchResult.type;
+    let resultsDispatch = useSearchResultsDispatch();
     const clickBatchSelect = () => {
         setShowBatchSelect(!showBatchSelect)
-        setSearchResults(sr => {
-            sr.tab.results.forEach(e => {
-                if (e.type === 'tab') {
-                    e.checked = false
-                }
-            })
+        resultsDispatch({
+            type: 'update',
+            updateType: resultType,
+            update: (searchResult) => {
+                searchResult.results.forEach(e => {
+                    if (e.type === 'tab') {
+                        e.checked = false
+                    }
+                })
+            }
         })
     }
     const batchSelectCount = useMemo(() => {
@@ -30,10 +37,14 @@ function SearchResultHeader({searchResult, showBatchSelect, setShowBatchSelect, 
                 chrome.tabs.remove(e.id)
             })
             // 从搜索结果中移除已关闭的标签
-            setSearchResults(sr => {
-                sr.tab.results = searchResult.results.filter(result =>
-                    !(result.type === 'tab' && tabs.map(e => e.id).indexOf(result.id) != -1)
-                )
+            resultsDispatch({
+                type: 'set',
+                searchResult: {
+                    type: 'tab',
+                    results: searchResult.results.filter(result =>
+                        !(result.type === 'tab' && tabs.map(e => e.id).indexOf(result.id) != -1)
+                    )
+                }
             })
         } catch (error) {
             console.error('关闭标签页失败:', error)
@@ -59,13 +70,14 @@ function SearchResultHeader({searchResult, showBatchSelect, setShowBatchSelect, 
         });
     }
     const clickSelectAll = () => {
-        setSearchResults((sr) => {
-            for (let result of sr.tab.results) {
+        resultsDispatch({
+            type: 'update',
+            updateType: resultType,
+            update: (searchResult) => {
+            for (let result of searchResult.results) {
                 result.checked = !result.checked
             }
-        })
-
-
+        }})
     }
     return (<div className={styles["group-header"]}>
         <span>{typeLabels[resultType]}</span>
@@ -100,21 +112,21 @@ function SearchResultHeader({searchResult, showBatchSelect, setShowBatchSelect, 
     </div>)
 }
 
-export function SearchResult({searchResult, isLoading, setSearchResults}: {
-    searchResult: SearchResult,
-    isLoading: boolean
+export function SearchResult({isLoading, resultType}: {
+    isLoading: boolean, resultType: ResultType
 }) {
 
+    const searchResult = useSearchResults()[resultType]
     const [showBatchSelect, setShowBatchSelect] = useState(false)
     return (
         <>
             {searchResult && <div className={styles["search-box"]}>
                 <SearchResultHeader searchResult={searchResult} setShowBatchSelect={setShowBatchSelect}
-                                    showBatchSelect={showBatchSelect} setSearchResults={setSearchResults}>
+                                    showBatchSelect={showBatchSelect} >
                 </SearchResultHeader>
                 {isLoading && <div className={styles["loading"]}>加载中...</div>}
-                <SearchItems searchResult={searchResult} showBatchSelect={showBatchSelect}
-                             setSearchResults={setSearchResults}/>
+                {!isLoading && <SearchItems searchResult={searchResult} showBatchSelect={showBatchSelect}
+                            />}
             </div>
             }
         </>

@@ -1,6 +1,4 @@
 import {build, defineConfig} from 'vite';
-import * as config from './vite.config.js'
-import vue from "@vitejs/plugin-vue";
 import react from '@vitejs/plugin-react'
 import { access, rm, mkdir,rename } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';

@@ -23,6 +23,7 @@
     "@types/chrome": "^0.0.287",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
+    "@vitejs/plugin-legacy": "^6.0.1",
     "@vitejs/plugin-react": "^4.3.4",
     "@vitejs/plugin-vue": "^5.2.1",
     "csstype": "^3.1.3",

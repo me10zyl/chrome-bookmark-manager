@@ -5,12 +5,16 @@ import BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 import HistoryItem = chrome.history.HistoryItem;
 import {h, ref} from "vue";
 import {useCallback, useEffect, useRef} from "react";
+import {SearchResultsDispatch, useSearchResultsDispatch} from "../tsx/search/SearchResultsContext";
+
+export type ResultType = 'bookmark' | 'tab' | 'history';
+
 
 export interface Result {
     id: number|string|undefined,
     title: string|undefined,
     url: string|undefined,
-    type: 'bookmark' | 'tab' | 'history',
+    type: ResultType,
     favicon: string|undefined,
     checked?: boolean,
     windowId?: number,
@@ -65,18 +69,17 @@ export const typeLabels = {
 
 export const search = async ({
     searchText,
-    setSearchResults,
     setShowResults,
     setIsLoading,
-    setLastUpdated
+    setLastUpdated,
+    searchResultsDispatch
 }: {
     searchText: string,
-    setSearchResults: (results: SearchResults) => void,
     setShowResults: (showResults: boolean) => void,
     setIsLoading: (isLoading: boolean) => void,
     setLastUpdated: (lastUpdated: string) => void
+    searchResultsDispatch: (action: SearchResultsDispatch) => void
 }) => {
-
     console.log('开始搜索:', searchText)
     setShowResults(false)
     setIsLoading(true)
@@ -95,18 +98,20 @@ export const search = async ({
             getRecentHistory()
         ]);
         setIsLoading(false)
-        setSearchResults({
-            tab: {
-                type: 'tab',
-                results: recentTabs
-            }, bookmark: {
-                type: 'bookmark',
-                results: recentBookmarks
-            }, history: {
-                type: 'history',
-                results: recentHistory
-            }
-        })
+        searchResultsDispatch({
+            type: 'sets',
+            searchResults:{
+                tab: {
+                    type: 'tab',
+                    results: recentTabs
+                }, bookmark: {
+                    type: 'bookmark',
+                    results: recentBookmarks
+                }, history: {
+                    type: 'history',
+                    results: recentHistory
+                }
+        }})
         setShowResults(true)
         setLastUpdated(new Date().toLocaleString())
     }
@@ -185,7 +190,8 @@ export const search = async ({
             windowId: tab.windowId,
             lastAccessed: tab.lastAccessed,
             status: tab.status,
-            origin: tab
+            origin: tab,
+            checked: false
         }
     }
 
@@ -210,7 +216,6 @@ export const search = async ({
             });
             for (let tab of tabResults) {
                 if (tab.groupId && tab.groupId > 0) {
-                    console.log(tab.groupId)
                     let tabGroup = await chrome.tabGroups.get(tab.groupId);
                     tab.groupTitle = tabGroup.title
                 }
@@ -266,7 +271,7 @@ export const search = async ({
            });
            results.history.results = historyResults
 
-           setSearchResults(results)
+           searchResultsDispatch({type:'sets', searchResults: results});
            setShowResults(true)
            setLastUpdated(new Date().toLocaleString())
        } catch (error) {

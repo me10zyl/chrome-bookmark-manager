@@ -5,26 +5,11 @@ import {MessageRequest} from "../../js/commonDeclare";
 import {useImmer} from "use-immer";
 import {SearchHead} from "./SearchHead";
 import {SearchResult} from "./SearchResult";
+import {SearchResultsProvider, useSearchResults, useSearchResultsDispatch} from "./SearchResultsContext";
 
-
-export default function Search() {
-
-
+function Search() {
+    const searchResultsDispatch = useSearchResultsDispatch();
     const [searchText, setSearchText] = useState('')
-    const [searchResults, setSearchResults] = useImmer<SearchResults>({
-        tab: {
-            type: 'tab',
-            results: []
-        },
-        history: {
-            type: 'history',
-            results: []
-        },
-        bookmark: {
-            type: 'bookmark',
-            results: []
-        }
-    })
     const [isLoading, setIsLoading] = useState(false)
 
     const [showResults, setShowResults] = useState(false)
@@ -46,28 +31,28 @@ export default function Search() {
 
     }
 
-    const doSearch =  () => {
-        search({searchText, setSearchResults, setIsLoading, setShowResults, setLastUpdated})
+    const doSearch = () => {
+        search({searchText, setIsLoading, setShowResults, setLastUpdated, searchResultsDispatch})
     }
 
-    const handleMessage = (message:MessageRequest) => {
+    const handleMessage = (message: MessageRequest) => {
         if (message.action === 'updateSearchResults') {
             doSearch();
         }
     }
 
-    const init = ()=>{
-        useEffect(()=>{
+    const init = () => {
+        useEffect(() => {
             chrome.runtime.onMessage.addListener(handleMessage);
             return () => {
                 chrome.runtime.onMessage.removeListener(handleMessage);
             };
         }, [])
-        const timeoutId = useRef<number|undefined>(undefined)
+        const timeoutId = useRef<number | undefined>(undefined)
         useEffect(() => {
             clearTimeout(timeoutId.current)
             timeoutId.current = setTimeout(doSearch, CONFIG.debounceTime)
-            return ()=>{
+            return () => {
                 clearTimeout(timeoutId.current)
             }
         }, [searchText]);
@@ -76,15 +61,24 @@ export default function Search() {
     init()
 
 
-
     return (
-        <div className={styles["search-container"]}>
-            <SearchHead doSearch={doSearch} searchText={searchText} setSearchText={setSearchText} lastUpdated={lastUpdated}></SearchHead>
+        <>
+            <SearchHead doSearch={doSearch} searchText={searchText} setSearchText={setSearchText}
+                        lastUpdated={lastUpdated}></SearchHead>
             <div id="searchResults" className={styles["results-container"]}>
-                <SearchResult searchResult={searchResults.tab} isLoading={isLoading} setSearchResults={setSearchResults}></SearchResult>
-                <SearchResult searchResult={searchResults.history} isLoading={isLoading} setSearchResults={setSearchResults}></SearchResult>
-                <SearchResult searchResult={searchResults.bookmark} isLoading={isLoading} setSearchResults={setSearchResults}></SearchResult>
+                <SearchResult isLoading={isLoading} resultType='tab'></SearchResult>
+                <SearchResult isLoading={isLoading} resultType='history'></SearchResult>
+                <SearchResult isLoading={isLoading} resultType='bookmark'></SearchResult>
             </div>
-        </div>
+        </>
     )
+}
+
+
+export default function SearchWrapper() {
+    return (<div className={styles["search-container"]}>
+        <SearchResultsProvider>
+            <Search/>
+        </SearchResultsProvider>
+    </div>)
 }
