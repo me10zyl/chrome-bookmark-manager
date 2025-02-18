@@ -12,7 +12,8 @@
     "sidePanel",
     "contextMenus",
     "scripting",
-    "commands"
+    "commands",
+    "chrome://favicon/*"
   ],
   "host_permissions": [
     "<all_urls>"

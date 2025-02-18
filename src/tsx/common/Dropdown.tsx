@@ -1,8 +1,22 @@
-import {useState} from "react";
+import React, {useEffect, useState} from "react";
 import styles from '../../css/Dropdown.module.css'
 
 export function Dropdown({children}) {
     const [show,setShow] = useState(false)
+    useEffect(() => {
+        let listener = (e) => {
+            if(!e.target.closest('.'+ styles['dropdown'])){
+                if (show) {
+                    console.log('documentclicked')
+                    setShow(false)
+                }
+            }
+        };
+        document.addEventListener('click', listener)
+        return ()=>{
+            document.removeEventListener('click', listener)
+        }
+    }, [show]);
     return (<div className={styles.dropdown}>
         <button className={styles['edit-group-btn']} title="更多操作"
                 onClick={()=>{setShow(!show)}}>
@@ -12,11 +26,16 @@ export function Dropdown({children}) {
             </svg>
         </button>
         <div className={styles['dropdown-menu'] + " " + (show ? styles.show : '')}>
-            {children}
+            {React.Children.map(children, child => {
+                return React.cloneElement(child, { closeDropdown: () => setShow(false) })
+            })}
         </div>
     </div>)
 }
 
-export function DropdownItem({children, onClick}) {
-    return (<button className={styles['dropdown-item']} onClick={onClick}>{children}</button>)
+export function DropdownItem({children, onClick, closeDropdown}) {
+    return (<button className={styles['dropdown-item']} onClick={()=>{
+        onClick()
+        closeDropdown()
+    }}>{children}</button>)
 }

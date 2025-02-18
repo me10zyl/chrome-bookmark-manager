@@ -4,6 +4,7 @@ import React, {useContext} from "react";
 import {useSearchResults, useSearchResultsDispatch} from "./SearchResultsContext";
 import {flushSync} from "react-dom";
 import {FaEye, FaEyeSlash} from 'react-icons/fa';
+import {Result} from "../../js/search";
 
 interface SearchHeadProps {
     doSearch: () => void;
@@ -54,6 +55,66 @@ export function SearchHead({
             alert('已关闭所有分组标签')
         })();
     }
+
+    const findDuplicateTabs = () => {
+        const tabResults = searchResults.tab.results;
+        const urlMap = new Map();
+        const duplicates:Result[] = [];
+
+        tabResults.forEach(tab => {
+            if (urlMap.has(tab.url)) {
+                duplicates.push(tab);
+                if (!duplicates.includes(urlMap.get(tab.url))) {
+                    duplicates.push(urlMap.get(tab.url));
+                }
+            } else {
+                urlMap.set(tab.url, tab);
+            }
+        });
+        resultsDispatch({
+            type: 'set',
+            searchResult: {
+                type: 'tab',
+                results: searchResults.tab.results.map(r => {
+                    return {
+                        ...r,
+                        highlight: duplicates.some(d => d.id === r.id)
+                    }
+                })
+            }
+        })
+    }
+
+    const closeDuplicateTabs = async () => {
+        const tabResults = searchResults.tab.results;
+        const urlMap = new Map();
+        const tabsToClose:number[] = [];
+        console.log('tabs', tabResults)
+        tabResults.forEach(tab => {
+            if (urlMap.has(tab.url)) {
+                tabsToClose.push(tab.id);
+            } else {
+                urlMap.set(tab.url, tab);
+            }
+        });
+
+        if (tabsToClose.length > 0) {
+            await chrome.tabs.remove(tabsToClose);
+            flushSync(() => {
+                resultsDispatch({
+                    type: 'set',
+                    searchResult: {
+                        type: 'tab',
+                        results: searchResults.tab.results.filter(r => !tabsToClose.includes(r.id))
+                    }
+                })
+            });
+            alert(`已关闭 ${tabsToClose.length} 个重复标签页`);
+        } else {
+            alert('没有找到重复的标签页');
+        }
+    }
+
     return (
         <>
             <div className={styles["page-head"]}>
@@ -85,6 +146,12 @@ export function SearchHead({
                     <Dropdown>
                         <DropdownItem onClick={closeAllGroups}>
                             关闭所有的分组
+                        </DropdownItem>
+                        <DropdownItem onClick={findDuplicateTabs}>
+                            查找重复标签页
+                        </DropdownItem>
+                        <DropdownItem onClick={closeDuplicateTabs}>
+                            关闭重复标签页
                         </DropdownItem>
                     </Dropdown>
                 </div>
