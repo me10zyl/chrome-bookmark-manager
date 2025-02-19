@@ -35,6 +35,32 @@ function getBookmarkGroupName(bookmarkGroups: chrome.bookmarks.BookmarkTreeNode[
 
 chrome.runtime.onInstalled.addListener(async () => {
     console.log('onInstalled')
+    // 在你的脚本中添加以下代码
+    chrome.commands.onCommand.addListener(async (command) => {
+        if (command === 'open-search') {
+            // 触发全局搜索的逻辑
+            let [tab,type] = await clickBtn('search');
+            try {
+                if(type === 'old') {
+                    chrome.tabs.sendMessage(tab.id, {action: 'updateSearchResults'});
+                }
+            }catch (e){
+
+            }
+        }else if(command === 'open-bookmark-group'){
+            let tab = await clickBtn('bookmarkGroups');
+        }
+    });
+    chrome.tabs.onActivated.addListener(async (activeInfo) => {
+        const tab = await chrome.tabs.get(activeInfo.tabId);
+        if(chrome.runtime.getURL('index.html#/search') === tab.url){
+            try {
+                chrome.tabs.sendMessage(tab.id, {action: 'updateSearchResults'});
+            }catch (e){
+
+            }
+        }
+    })
     chrome.contextMenus.create({
         id: "showDialog",
         title: "添加/移除到书签组",
@@ -108,20 +134,5 @@ chrome.runtime.onInstalled.addListener(async () => {
     });
 
 
-    // 在你的脚本中添加以下代码
-    chrome.commands.onCommand.addListener(async (command) => {
-        if (command === 'open-search') {
-            // 触发全局搜索的逻辑
-            let tab = await clickBtn('search');
-            chrome.tabs.sendMessage(tab.id, { action: 'updateSearchResults' });
-        }else if(command === 'open-bookmark-group'){
-            let tab = await clickBtn('bookmarkGroups');
-        }
-    });
-    chrome.tabs.onActivated.addListener(async (activeInfo) => {
-        const tab = await chrome.tabs.get(activeInfo.tabId);
-        if(chrome.runtime.getURL('index.html#/search') === tab.url){
-            chrome.tabs.sendMessage(tab.id, { action: 'updateSearchResults' });
-        }
-    })
+
 });

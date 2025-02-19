@@ -2,7 +2,7 @@ import BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode;
 
 const PREFIX = '[TabGroup]';
 export const clickBtn = async (id: string) => {
-    console.log('clickBtn')
+    console.log('clickBtn', id)
     let tabs = await chrome.tabs.query({});
     let url = `index.html#/${id}`;
     let existsTabs = tabs.filter(e=>e.url === chrome.runtime.getURL(url));
@@ -14,12 +14,15 @@ export const clickBtn = async (id: string) => {
         await chrome.tabs.update(existsTabs[0].id, {
             active: true
         })
-        return existsTabs[0]
+        console.log('opened --' +  existsTabs[0])
+        return [existsTabs[0], 'old']
     }else {
-        return await chrome.tabs.create({
+        console.log('opened new')
+        let tab = await chrome.tabs.create({
             url: url,
             active: true
-        })
+        });
+        return [tab, 'new']
     }
 }
 export function addToGroup(groupName: string, selectedTabs:string[], successCallback?:()=>{}) {
