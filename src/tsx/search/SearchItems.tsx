@@ -62,7 +62,7 @@ export default function SearchItems({searchResult, showBatchSelect}) {
                                     }})
                                 }}
                             />}
-                        {tab.favicon ? <img src={tab.favicon} className={styles["result-icon"]} alt=""/>: <i className={styles["result-icon"]}></i>}
+                        {tab.favicon ? <img src={tab.favicon} className={styles["result-icon"]} loading="lazy" alt=""/>: <i className={styles["result-icon"]}></i>}
                         <div className={styles["result-info"]} onClick={(e)=>{
                             onClickResult(tab)
                         }}>

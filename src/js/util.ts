@@ -10,3 +10,12 @@ export function extractDomain(url: string) {
     let regExpMatchArray = url.match(/^.+:\/\/([^/]+?)\//);
     return regExpMatchArray != null && regExpMatchArray.length > 1 ? regExpMatchArray[1] : 'unknown';
 }
+
+export const favicon = (pageUrl: string, size: number = 24) => {
+    const url = new URL(`chrome-extension://${chrome.runtime.id}/_favicon/`);
+    url.searchParams.append("pageUrl", pageUrl);
+    url.searchParams.append("size", size.toString());
+
+    return url.href;
+};
+

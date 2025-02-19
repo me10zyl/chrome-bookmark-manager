@@ -6,6 +6,7 @@ import HistoryItem = chrome.history.HistoryItem;
 import {h, ref} from "vue";
 import {useCallback, useEffect, useRef} from "react";
 import {SearchResultsDispatch, useSearchResultsDispatch} from "../tsx/search/SearchResultsContext";
+import {favicon} from "./util";
 
 export type ResultType = 'bookmark' | 'tab' | 'history';
 
@@ -193,7 +194,7 @@ export const search = async ({
             title: item.title,
             url: item.url,
             type: 'bookmark',
-            favicon: item.url ? `chrome://favicon/${item.url}` : undefined,
+            favicon: item.url ? /*`chrome://favicon/${item.url}`*/favicon(item.url) : undefined,
             lastAccessed: item.dateAdded
         }
     }
@@ -220,7 +221,7 @@ export const search = async ({
             title: his.title,
             url: his.url,
             type: 'history',
-            favicon: his.url ? `chrome://favicon/${his.url}` : undefined,
+            favicon: his.url ? /*`chrome://favicon/${his.url}`*/ favicon(his.url) : undefined,
             // lastVisitTime: his.lastVisitTime
             lastAccessed: his.lastVisitTime
         }
