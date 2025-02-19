@@ -90,6 +90,13 @@ export function SearchHead({
         const urlMap = new Map();
         const tabsToClose:number[] = [];
         console.log('tabs', tabResults)
+        const sortTabResults = [];
+        // 分离有 groupId 和没有 groupId 的项
+        const withGroupId = tabResults.filter(tab => tab.groupId !== -1);
+        const withoutGroupId = tabResults.filter(tab => tab.groupId === -1);
+
+        // 合并结果，有 groupId 的在前
+        sortTabResults.push(...withGroupId, ...withoutGroupId);
         tabResults.forEach(tab => {
             if (urlMap.has(tab.url)) {
                 tabsToClose.push(tab.id);
@@ -146,9 +153,6 @@ export function SearchHead({
                     <Dropdown>
                         <DropdownItem onClick={closeAllGroups}>
                             关闭所有的分组
-                        </DropdownItem>
-                        <DropdownItem onClick={findDuplicateTabs}>
-                            查找重复标签页
                         </DropdownItem>
                         <DropdownItem onClick={closeDuplicateTabs}>
                             关闭重复标签页
