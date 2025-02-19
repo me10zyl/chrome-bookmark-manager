@@ -229,6 +229,15 @@ export const search = async ({
 
     async function sortTab(tabResults: Result[]) {
         if (tabResults.length > 0) {
+            let results = tabResults.filter(r=>r.url && r.url.includes(chrome.runtime.getURL('/index.html')));
+            if(results.length > 0){
+                results.forEach(r=>{
+                    let index = tabResults.indexOf(r);
+                    if(index != -1){
+                        tabResults.splice(index, 1)
+                    }
+                })
+            }
             tabResults.sort((a, b) => {
                 if(a.lastAccessed === undefined || b.lastAccessed === undefined){
                     return 0;
