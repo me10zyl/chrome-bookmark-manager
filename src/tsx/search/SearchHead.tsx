@@ -105,6 +105,11 @@ export function SearchHead({
             }
         });
 
+        let ids = tabResults.filter(tab=>tab.url?.startsWith('chrome://')).map(e=>e.id);
+        if(ids.length > 0) {
+            tabsToClose.push(...ids)
+        }
+
         if (tabsToClose.length > 0) {
             await chrome.tabs.remove(tabsToClose);
             flushSync(() => {
@@ -116,9 +121,9 @@ export function SearchHead({
                     }
                 })
             });
-            alert(`已关闭 ${tabsToClose.length} 个重复标签页`);
+            alert(`已关闭 ${tabsToClose.length} 个重复/多余的标签页`);
         } else {
-            alert('没有找到重复的标签页');
+            alert('没有找到重复的/多余的标签页');
         }
     }
 
@@ -155,7 +160,7 @@ export function SearchHead({
                             关闭所有的分组
                         </DropdownItem>
                         <DropdownItem onClick={closeDuplicateTabs}>
-                            关闭重复标签页
+                            关闭重复/多余标签页
                         </DropdownItem>
                     </Dropdown>
                 </div>
