@@ -9,6 +9,7 @@ import TabGroup = chrome.tabGroups.TabGroup;
 import * as groupHandle from "@/js/bookmarkGroup";
 import {useEffect, useState} from "react";
 import {Dropdown, DropdownItem} from "../common/Dropdown";
+import {favicon} from "../../js/util";
 
 
 
@@ -227,32 +228,35 @@ export default function bookmarkGroup(){
                         </div>
                     </div>
                     <div className={styles['bookmarks-list']}>
-                        {group.children.map(bookmark => (
-                            <div key={bookmark.id} className={styles['bookmark-item']}>
-                                <div className={styles['bookmark-content']}>
-                                    <img className={styles['bookmark-icon']} src={`chrome://favicon/${bookmark.url}`}
-                                    alt=""/>
-                                    <div className={styles['bookmark-info']}>
-                                        <div className={styles['bookmark-title']}>{bookmark.title || '无标题'}</div>
-                                        <div className={styles['bookmark-url']}>{bookmark.url}</div>
+                        {group.children.map(bookmark => {
+                            let bookmarkFavicon = favicon(bookmark.url);
+                            return (
+                                <div key={bookmark.id} className={styles['bookmark-item']}>
+                                    <div className={styles['bookmark-content']}>
+                                        <img className={styles['bookmark-icon']} src={bookmarkFavicon}
+                                             alt=""/>
+                                        <div className={styles['bookmark-info']}>
+                                            <div className={styles['bookmark-title']}>{bookmark.title || '无标题'}</div>
+                                            <div className={styles['bookmark-url']}>{bookmark.url}</div>
+                                        </div>
+                                    </div>
+                                    <div className={styles['bookmark-actions']}>
+                                        <button
+                                            className={styles['bookmark-action-btn'] + ' ' + styles['delete-bookmark-btn']}
+                                            title="删除书签"
+                                            onClick={() => {
+                                                deleteBookmark(bookmark.id)
+                                            }}>
+                                            <svg viewBox="0 0 24 24" width="16" height="16">
+                                                <path
+                                                    d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
+                                                    fill="#e10a1d"/>
+                                            </svg>
+                                        </button>
                                     </div>
                                 </div>
-                                <div className={styles['bookmark-actions']}>
-                                    <button
-                                        className={styles['bookmark-action-btn'] + ' ' + styles['delete-bookmark-btn']}
-                                        title="删除书签"
-                                        onClick={() => {
-                                            deleteBookmark(bookmark.id)
-                                        }}>
-                                        <svg viewBox="0 0 24 24" width="16" height="16">
-                                            <path
-                                                d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
-                                                fill="#e10a1d"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             ))
