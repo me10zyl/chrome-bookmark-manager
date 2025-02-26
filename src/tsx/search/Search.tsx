@@ -16,6 +16,7 @@ function Search() {
     const [hideUnmatched, setHideUnmatched] = useState(true)
 
     const doSearch = () => {
+        console.log('doSearch', searchText)
         search({searchText, setIsLoading, setShowResults, setLastUpdated, searchResultsDispatch, hideUnmatched, searchResults})
     }
 
@@ -31,7 +32,7 @@ function Search() {
             return () => {
                 chrome.runtime.onMessage.removeListener(handleMessage);
             };
-        }, [])
+        }, [searchText])
         const timeoutId = useRef<number | undefined>(undefined)
         useEffect(() => {
             clearTimeout(timeoutId.current)
