@@ -14,6 +14,7 @@ function Search() {
     const [lastUpdated, setLastUpdated] = useState('')
     const [showResults, setShowResults] = useState(false)
     const [hideUnmatched, setHideUnmatched] = useState(true)
+    const searchInputRef = useRef(null)
 
     const doSearch = () => {
         console.log('doSearch', searchText)
@@ -24,6 +25,7 @@ function Search() {
         if (message.action === 'updateSearchResults') {
             doSearch();
         }
+        searchInputRef.current?.focus()
     }
 
     const init = () => {
@@ -48,7 +50,9 @@ function Search() {
     return (
         <>
             <SearchHead doSearch={doSearch} searchText={searchText} setSearchText={setSearchText}
-                        lastUpdated={lastUpdated} hideUnmatched={hideUnmatched} setHideUnmatched={setHideUnmatched}></SearchHead>
+                        lastUpdated={lastUpdated} hideUnmatched={hideUnmatched} setHideUnmatched={setHideUnmatched}
+                        searchInputRef={searchInputRef}
+            ></SearchHead>
             <div id="searchResults" className={styles["results-container"]}>
                 <SearchResult isLoading={isLoading} resultType='tab' hideUnmatched={hideUnmatched}></SearchResult>
                 <SearchResult isLoading={isLoading} resultType='history' hideUnmatched={hideUnmatched}></SearchResult>

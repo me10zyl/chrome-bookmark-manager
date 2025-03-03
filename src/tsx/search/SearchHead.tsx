@@ -13,6 +13,7 @@ interface SearchHeadProps {
     lastUpdated: string;
     hideUnmatched: boolean;
     setHideUnmatched: (hide: boolean) => void;
+    searchInputRef: React.MutableRefObject<HTMLInputElement | null>;
 }
 
 export function SearchHead({
@@ -21,7 +22,8 @@ export function SearchHead({
                                setSearchText,
                                lastUpdated,
                                hideUnmatched,
-                               setHideUnmatched
+                               setHideUnmatched,
+                               searchInputRef
                            }: SearchHeadProps) {
     let searchResults = useSearchResults();
     console.log('searchResults', searchResults)
@@ -166,9 +168,10 @@ export function SearchHead({
                 </div>
             </div>
             <div className={styles["search-wrapper"]}>
-                <input type="text" id={styles.searchInput} placeholder="搜索标签页、书签、历史记录..." autoFocus
+                <input type="text" id={styles.searchInput} placeholder="搜索标签页、书签、历史记录..."
+                       autoFocus={true}
+                       ref={searchInputRef}
                        onChange={onChangeSearchText}
-                       autofocus={true}
                        value={searchText}/>
                 <div className={styles["search-icon"]}>🔍</div>
             </div>
