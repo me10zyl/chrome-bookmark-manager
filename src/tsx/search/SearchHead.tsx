@@ -129,6 +129,29 @@ export function SearchHead({
         }
     }
 
+    const closeNonGroupedTabs = async () => {
+        const tabResults = searchResults.tab.results;
+        const tabsToClose = tabResults
+            .filter(tab => tab.groupId === -1)  // 筛选出非分组标签
+            .map(tab => tab.id);
+
+        if (tabsToClose.length > 0) {
+            await chrome.tabs.remove(tabsToClose);
+            flushSync(() => {
+                resultsDispatch({
+                    type: 'set',
+                    searchResult: {
+                        type: 'tab',
+                        results: searchResults.tab.results.filter(r => !tabsToClose.includes(r.id))
+                    }
+                })
+            });
+            alert(`已关闭 ${tabsToClose.length} 个非分组标签页`);
+        } else {
+            alert('没有找到非分组标签页');
+        }
+    }
+
     return (
         <>
             <div className={styles["page-head"]}>
@@ -158,6 +181,9 @@ export function SearchHead({
                         {hideUnmatched ? <FaEyeSlash/> : <FaEye/>}
                     </button>
                     <Dropdown>
+                        <DropdownItem onClick={closeNonGroupedTabs}>
+                            关闭非分组标签页
+                        </DropdownItem>
                         <DropdownItem onClick={closeAllGroups}>
                             关闭所有的分组
                         </DropdownItem>
