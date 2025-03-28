@@ -61,7 +61,7 @@ export function SearchHead({
     const findDuplicateTabs = () => {
         const tabResults = searchResults.tab.results;
         const urlMap = new Map();
-        const duplicates:Result[] = [];
+        const duplicates: Result[] = [];
 
         tabResults.forEach(tab => {
             if (urlMap.has(tab.url)) {
@@ -90,7 +90,7 @@ export function SearchHead({
     const closeDuplicateTabs = async () => {
         const tabResults = searchResults.tab.results;
         const urlMap = new Map();
-        const tabsToClose:number[] = [];
+        const tabsToClose: number[] = [];
         console.log('tabs', tabResults)
         const sortTabResults = [];
         // 分离有 groupId 和没有 groupId 的项
@@ -107,8 +107,8 @@ export function SearchHead({
             }
         });
 
-        let ids = tabResults.filter(tab=>tab.url?.startsWith('chrome://')).map(e=>e.id);
-        if(ids.length > 0) {
+        let ids = tabResults.filter(tab => tab.url?.startsWith('chrome://')).map(e => e.id);
+        if (ids.length > 0) {
             tabsToClose.push(...ids)
         }
 
@@ -152,6 +152,50 @@ export function SearchHead({
         }
     }
 
+    const separateAllGroupsToNewWindow = async () => {
+        // 获取所有标签页
+        const allTabs = await chrome.tabs.query({});
+        const groupedTabs = allTabs.filter(tab => tab.groupId !== -1);
+        const nonGroupedTabs = allTabs.filter(tab => tab.groupId === -1);
+
+        if (groupedTabs.length > 0) {
+            let set = new Set(groupedTabs.map(e => e.groupId));
+            for (let groupId of set) {
+                let ranTab = groupedTabs.filter(e => e.groupId === groupId)[0];
+                let tabs = await chrome.tabs.query({windowId: ranTab.windowId});
+                let singleWindow = true;
+                let firstWindowId = tabs[0].windowId;
+                for (let tab of tabs) {
+                    if(tab.windowId != firstWindowId){
+                        singleWindow = false;
+                        break;
+                    }
+                }
+                if(singleWindow){
+                    console.log('singleWindow', groupId)
+                    continue;
+                }
+                let window = await chrome.windows.create({url: 'chrome://about/'});
+                let id = window.tabs[0].id;
+                await chrome.tabGroups.move(groupId, {
+                    windowId: window.id
+                    , index: 0
+                });
+                chrome.tabs.remove(id);
+            }
+        }
+
+
+        if (nonGroupedTabs.length > 0) {
+            const tabIds = nonGroupedTabs.map(tab => tab.id)
+            let tab0 = await chrome.tabs.get(tabIds[0]);
+            await chrome.tabs.move(tabIds.slice(1), {
+                windowId: tab0.windowId,
+                index: -1
+            });
+        }
+    };
+
     return (
         <>
             <div className={styles["page-head"]}>
@@ -189,6 +233,9 @@ export function SearchHead({
                         </DropdownItem>
                         <DropdownItem onClick={closeDuplicateTabs}>
                             关闭重复/多余标签页
+                        </DropdownItem>
+                        <DropdownItem onClick={separateAllGroupsToNewWindow}>
+                            分离所有分组到新窗口
                         </DropdownItem>
                     </Dropdown>
                 </div>
