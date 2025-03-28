@@ -135,3 +135,59 @@ chrome.runtime.onInstalled.addListener(async () => {
         contexts: ["page"]
     });
 });
+
+
+let tabHistory = [];    // 后退栈
+let forwardHistory = []; // 前进栈
+let isProgrammaticNavigation = false; // 标志：是否为程序化导航
+
+// 监听标签页切换
+chrome.tabs.onActivated.addListener((activeInfo) => {
+    if(isProgrammaticNavigation){
+        isProgrammaticNavigation = false;
+        return;
+    }else{
+        forwardHistory = []; // 清空前进栈
+    }
+    tabHistory.push({ tabId: activeInfo.tabId});
+    if (tabHistory.length > 50) tabHistory.shift(); // 限制后退栈大小
+    if(forwardHistory.length > 50) forwardHistory.shift(); // 限制前进栈大小
+});
+
+// 清理关闭的标签页
+chrome.tabs.onRemoved.addListener((tabId) => {
+    tabHistory = tabHistory.filter((entry) => entry.tabId !== tabId);
+    forwardHistory = forwardHistory.filter((entry) => entry.tabId !== tabId);
+});
+
+// 监听快捷键命令
+chrome.commands.onCommand.addListener((command) => {
+    if (command === "navigate-back" && tabHistory.length > 1) {
+        let currentTab = tabHistory.pop(); // 移除当前标签页
+        forwardHistory.push(currentTab);   // 加入前进栈
+        let previousTab = tabHistory[tabHistory.length - 1];
+        chrome.tabs.get(previousTab.tabId, (tab) => {
+            if (tab) {
+                isProgrammaticNavigation = true;   // 设置标志，避免触发 onActivated 的清空逻辑
+                chrome.tabs.update(previousTab.tabId, { active: true });
+            } else {
+                // 如果标签页不存在，继续回溯
+                tabHistory.pop();
+                chrome.commands.onCommand.dispatch("navigate-back");
+            }
+        });
+    } else if (command === "navigate-forward" && forwardHistory.length > 0) {
+        let nextTab = forwardHistory.pop(); // 从前进栈取回标签页
+        tabHistory.push(nextTab);           // 加入后退栈
+        chrome.tabs.get(nextTab.tabId, (tab) => {
+            if (tab) {
+                isProgrammaticNavigation = true;   // 设置标志，避免触发 onActivated 的清空逻辑
+                chrome.tabs.update(nextTab.tabId, { active: true });
+            } else {
+                // 如果标签页不存在，继续前进
+                forwardHistory.pop();
+                chrome.commands.onCommand.dispatch("navigate-forward");
+            }
+        });
+    }
+});

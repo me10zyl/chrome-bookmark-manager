@@ -41,6 +41,20 @@
         "mac": "Command+U"
       },
       "description": "打开书签组"
+    },
+    "navigate-back": {
+      "suggested_key": {
+        "default": "Ctrl+Left",
+        "mac": "Command+Left"
+      },
+      "description": "导航到前一个标签"
+    },
+    "navigate-forward": {
+      "suggested_key": {
+        "default": "Ctrl+Right",
+        "mac": "Command+Right"
+      },
+      "description": "导航到下一个标签"
     }
   },
   "icons": {
