@@ -64,6 +64,21 @@ export default function bookmarkGroup(){
         return tab
     }
 
+    const colors = ["grey", "blue", "red", "yellow", "green", "pink", "purple", "cyan"];
+
+
+    function stringToColor(str:string) {
+        // 计算哈希值
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            hash = str.charCodeAt(i) + ((hash << 5) - hash);
+        }
+
+        // 取模映射到颜色数组
+        const index = Math.abs(hash) % colors.length;
+        return colors[index];
+    }
+
 // 打开所有书签
     const openAllBookmarks = async (bookmarks: BookmarkTreeNode[], group: BookmarkTreeNode) => {
         
@@ -144,7 +159,20 @@ export default function bookmarkGroup(){
             }
             await chrome.tabGroups.update(tabGroupId, {title: group.displayTitle})
         }
+
         await chrome.windows.update(windowId, {focused: true})
+
+        const tabGroups1 = await chrome.tabGroups.query({});
+        console.log('tabGroups1', tabGroups1)
+
+        tabGroups1.forEach(tabGroup => {
+            console.log('tabGroup.title:', tabGroup.title, stringToColor(tabGroup.title))
+            chrome.tabGroups.update(
+                tabGroup.id,{
+                    color : stringToColor(tabGroup.title)
+                });
+        })
+
     }
 
 
