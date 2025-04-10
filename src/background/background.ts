@@ -147,7 +147,7 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
         isProgrammaticNavigation = false;
         return;
     }else{
-        forwardHistory = []; // 清空前进栈
+        //forwardHistory = []; // 清空前进栈
     }
     tabHistory.push({ tabId: activeInfo.tabId});
     if (tabHistory.length > 50) tabHistory.shift(); // 限制后退栈大小
