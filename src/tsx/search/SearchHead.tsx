@@ -91,7 +91,7 @@ export function SearchHead({
         const tabResults = searchResults.tab.results;
         const urlMap = new Map();
         const tabsToClose: number[] = [];
-        console.log('tabs', tabResults)
+        console.log('关闭重复的TAB', tabResults)
         const sortTabResults = [];
         // 分离有 groupId 和没有 groupId 的项
         const withGroupId = tabResults.filter(tab => tab.groupId !== -1);
@@ -152,21 +152,40 @@ export function SearchHead({
         }
     }
 
+    const closeDuplicate = (tabs)=>{
+        let urlMap = new Map();
+        let tabsToClose = [];
+        tabs.forEach(tab => {
+            if (urlMap.has(tab.url)) {
+                tabsToClose.push(tab.id);
+            } else {
+                urlMap.set(tab.url, tab);
+            }
+        });
+        if (tabsToClose.length > 0) {
+            tabsToClose.forEach(tabId=>{
+                chrome.tabs.remove(tabId);
+            })
+        }
+        console.log(`关闭了重复的页面${tabsToClose.length}个`, tabsToClose)
+    }
+
     const separateAllGroupsToNewWindow = async () => {
         // 获取所有标签页
         const allTabs = await chrome.tabs.query({});
         const groupedTabs = allTabs.filter(tab => tab.groupId !== -1);
         const nonGroupedTabs = allTabs.filter(tab => tab.groupId === -1);
-
+        console.log('separateAllGroupsToNewWindow', groupedTabs, nonGroupedTabs)
         if (groupedTabs.length > 0) {
             let set = new Set(groupedTabs.map(e => e.groupId));
             for (let groupId of set) {
-                let ranTab = groupedTabs.filter(e => e.groupId === groupId)[0];
+                let allGroupTabs = groupedTabs.filter(e => e.groupId === groupId);
+                closeDuplicate(allGroupTabs);
+                let ranTab = allGroupTabs[0];
                 let tabs = await chrome.tabs.query({windowId: ranTab.windowId});
                 let singleWindow = true;
-                let firstWindowId = tabs[0].windowId;
                 for (let tab of tabs) {
-                    if(tab.windowId != firstWindowId){
+                    if(tab.groupId != ranTab.groupId){
                         singleWindow = false;
                         break;
                     }
@@ -187,6 +206,7 @@ export function SearchHead({
 
 
         if (nonGroupedTabs.length > 0) {
+            closeDuplicate(nonGroupedTabs);
             const tabIds = nonGroupedTabs.map(tab => tab.id)
             let tab0 = await chrome.tabs.get(tabIds[0]);
             await chrome.tabs.move(tabIds.slice(1), {
