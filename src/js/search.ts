@@ -176,14 +176,15 @@ export const search = async ({
     function getRecentHistory(): Promise<Result[]> {
         return new Promise((resolve) => {
             if (!chrome.history) {
+                console.log('chrome.history is not available');
                 resolve([]);
                 return;
             }
             chrome.history.search({
                 text: '',
-                maxResults: CONFIG.maxResults.history,
-                startTime: 0
+                maxResults: CONFIG.maxResults.history
             }, (history) => {
+                console.log('history:', history, CONFIG.maxResults.history)
                 resolve(sortHistory(history.map(mapHistory)));
             });
         });
